@@ -1,0 +1,87 @@
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+
+/**
+ * Modul: Autentikasi, Akun & Integrasi (Orang 1)
+ *
+ * TODO Orang 1:
+ * - verify()/reject(): untuk akun hasil registrasi mandiri (status pending)
+ * - store(): admin bikin akun petugas/pengguna langsung -> status auto 'verified'
+ * - toggleActive(): nonaktifkan/aktifkan akun yang sudah verified
+ * - profile update (lihat method profile di bawah, boleh dipindah ke controller lain)
+ */
+class AccountManagementController extends Controller
+{
+    public function index()
+    {
+        $pendingUsers = User::where('status', 'pending')->latest()->get();
+        $verifiedUsers = User::where('status', 'verified')->latest()->get();
+
+        return view('admin.accounts.index', compact('pendingUsers', 'verifiedUsers'));
+    }
+
+    public function verify(User $user)
+    {
+        // Saat status -> verified, account_status WAJIB diisi 'aktif'
+        // (lihat CHECK constraint di migration users)
+        $user->update([
+            'status' => 'verified',
+            'account_status' => 'aktif',
+        ]);
+
+        return back()->with('status', "Akun {$user->name} berhasil diverifikasi.");
+    }
+
+    public function reject(User $user)
+    {
+        $user->update([
+            'status' => 'rejected',
+            'account_status' => null,
+        ]);
+
+        return back()->with('status', "Akun {$user->name} ditolak.");
+    }
+
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'unique:users,email'],
+            'password' => ['required', 'min:8'],
+            'role' => ['required', 'in:pengguna,petugas'],
+            'user_type' => ['nullable', 'required_if:role,pengguna', 'in:mahasiswa,dosen,staf'],
+        ]);
+
+        User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => $validated['role'],
+            'user_type' => $validated['role'] === 'pengguna' ? $validated['user_type'] : null,
+            // Dibuat langsung oleh admin -> otomatis verified & aktif,
+            // tidak lewat alur registrasi mandiri.
+            'status' => 'verified',
+            'account_status' => 'aktif',
+        ]);
+
+        return back()->with('status', 'Akun berhasil dibuat.');
+    }
+
+    public function toggleActive(User $user)
+    {
+        if ($user->status !== 'verified') {
+            return back()->withErrors(['user' => 'Akun belum verified, tidak bisa diaktif/nonaktifkan.']);
+        }
+
+        $user->account_status = $user->account_status === 'aktif' ? 'nonaktif' : 'aktif';
+        $user->save();
+
+        return back()->with('status', "Status akun {$user->name} diubah jadi {$user->account_status}.");
+    }
+}

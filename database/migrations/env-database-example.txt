@@ -1,0 +1,34 @@
+# ==============================================
+# Konfigurasi Database — Sistem Reservasi & Pelaporan Fasilitas Kampus
+# ==============================================
+# Salin baris-baris di bawah ini ke file .env project Laravel kamu
+# (paling gampang: cari baris DB_* yang sudah ada di .env, lalu ganti
+# nilainya sesuai environment lokal/server masing-masing).
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=ppk_reservasi_fasilitas
+DB_USERNAME=root
+DB_PASSWORD=
+
+# ------------------------------------------------
+# Catatan penting sebelum menjalankan migration:
+# ------------------------------------------------
+# 1. Buat database-nya dulu secara manual (Laravel tidak membuat
+#    database-nya sendiri, hanya membuat tabel di dalamnya). Contoh lewat
+#    MySQL CLI atau phpMyAdmin:
+#
+#       CREATE DATABASE ppk_reservasi_fasilitas
+#       CHARACTER SET utf8mb4
+#       COLLATE utf8mb4_unicode_ci;
+#
+# 2. Pastikan versi MySQL yang dipakai 8.0.16 ke atas, karena skema ini
+#    memakai CHECK constraint (di tabel `users`, `locations`, dan
+#    `status_logs`) yang baru ditegakkan otomatis mulai versi tersebut.
+#    Cek versi dengan: SELECT VERSION();
+#    Kalau pakai XAMPP/Laragon versi lama, upgrade dulu MySQL/MariaDB-nya,
+#    atau pastikan validasi yang sama juga ada di Controller/Form Request.
+#
+# 3. Setelah .env diisi, jalankan:
+#       php artisan migrate
