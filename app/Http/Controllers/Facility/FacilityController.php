@@ -26,6 +26,9 @@ class FacilityController extends Controller
     {
         $facilities = Facility::query()
             ->where('status', '!=', 'nonaktif')
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $q->where('name', 'like', '%' . $request->search . '%');
+            })
             ->when($request->filled('type_id'), fn ($q) => $q->where('type_id', $request->type_id))
             ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
             ->when($request->filled('min_capacity'), fn ($q) => $q->where('capacity', '>=', $request->min_capacity))
