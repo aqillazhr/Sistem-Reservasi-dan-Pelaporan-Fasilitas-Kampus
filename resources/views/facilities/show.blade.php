@@ -8,8 +8,10 @@
 
 <body>
 
-    <a href="{{ route('facilities.index') }}">
-        ← Kembali ke daftar fasilitas
+    <a href="{{ request('from', route('facilities.index')) }}"
+    style="font-size: 32px; text-decoration: none;"
+    >
+        ←
     </a>
 
     <h1>{{ $facility->name }}</h1>

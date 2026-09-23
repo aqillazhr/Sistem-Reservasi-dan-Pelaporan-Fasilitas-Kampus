@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 // ==========================================================
 Route::get('/', [FacilityController::class, 'index'])->name('home');
 Route::get('/fasilitas', [FacilityController::class, 'index'])->name('facilities.index');
+Route::get('/fasilitas/fakultas/{faculty}', [FacilityController::class, 'byFaculty'])->name('facilities.by-faculty');
 Route::get('/fasilitas/{facility}', [FacilityController::class, 'show'])->name('facilities.show');
 
 // ==========================================================

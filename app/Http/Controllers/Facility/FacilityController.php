@@ -24,18 +24,28 @@ class FacilityController extends Controller
 {
     public function index(Request $request)
     {
-        $facilities = Facility::query()
-            ->where('status', '!=', 'nonaktif')
-            ->when($request->filled('search'), function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->search . '%');
-            })
-            ->when($request->filled('type_id'), fn ($q) => $q->where('type_id', $request->type_id))
-            ->when($request->filled('location_id'), fn ($q) => $q->where('location_id', $request->location_id))
-            ->when($request->filled('min_capacity'), fn ($q) => $q->where('capacity', '>=', $request->min_capacity))
-            ->with(['type', 'location', 'photos'])
-            ->paginate(12);
+        $search = trim($request->search ?? '');
 
-        return view('facilities.index', compact('facilities'));
+        $facilities = collect();
+
+        if ($search !== '') {
+            $facilities = Facility::query()
+                ->where('status', '!=', 'nonaktif')
+                ->when($search !== '', function ($q) use ($search) {
+                    if (preg_match('/kapasitas\s*(\d+)/i', $search, $matches)) {
+                        $capacity = (int) $matches[1];
+
+                        $q->where('capacity', '>=', $capacity);
+                    } else {
+                        $q->where('name', 'like', '%'.$search.'%');
+                    }
+                })
+                ->with(['type', 'location', 'photos'])
+                ->paginate(12)
+                ->withQueryString();
+        }
+
+        return view('facilities.index', compact('facilities', 'search'));
     }
 
     public function show(Facility $facility)
@@ -76,5 +86,18 @@ class FacilityController extends Controller
         $facility->update($validated);
 
         return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil diperbarui.');
+    }
+
+    public function byFaculty(string $faculty)
+    {
+        $facilities = Facility::query()
+            ->where('status', '!=', 'nonaktif')
+            ->whereHas('location', function ($q) use ($faculty) {
+                $q->where('fakultas', $faculty);
+            })
+            ->with(['type', 'location', 'photos'])
+            ->paginate(12);
+
+        return view('facilities.by-faculty', compact('facilities', 'faculty'));
     }
 }

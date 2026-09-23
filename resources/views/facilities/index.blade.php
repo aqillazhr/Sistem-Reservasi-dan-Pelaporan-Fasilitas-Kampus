@@ -3,17 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daftar Fasilitas</title>
+    <title>Hasil Pencarian</title>
+    <style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 40px;
+        background: #faf7ff;
+    }
+
+    h1 {
+        color: #54269a;
+        font-size: 40px;
+    }
+
+    .facility-card {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        background: white;
+        border-radius: 10px;
+        padding: 25px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .facility-image {
+        width: 180px;
+        height: 180px;
+        flex-shrink: 0;
+    }
+
+    .facility-image img,
+    .no-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        background: #ddd;
+        border-radius: 5px;
+    }
+
+    .facility-info {
+        flex: 1;
+    }
+
+    .facility-info h2 {
+        color: #54269a;
+        margin-top: 0;
+    }
+
+    .facility-details div {
+        display: grid;
+        grid-template-columns: 130px 20px 1fr;
+        margin: 5px 0;
+    }
+
+    .facility-details span::after {
+        content: ":";
+        margin-left: 10px;
+    }
+
+    .facility-arrow {
+        font-size: 60px;
+        color: #8f6bc1 !important;
+        text-decoration: none !important;
+        padding: 20px;
+        line-height: 1;
+    }
+</style>
 </head>
 
 <body>
 
-    <h1>Daftar Fasilitas</h1>
-
+    <h1>Hasil Pencarian</h1>
+    @if ($search)
+        <p>Hasil pencarian untuk: <strong>{{ $search }}</strong></p>
+    @endif
     {{-- Search & Filter --}}
     <form method="GET" action="{{ route('facilities.index') }}">
 
-        {{-- Search nama fasilitas --}}
         <input
             type="text"
             name="search"
@@ -21,32 +89,7 @@
             value="{{ request('search') }}"
         >
 
-        {{-- Filter tipe --}}
-        <select name="type_id">
-            <option value="">Semua Tipe</option>
-
-            @foreach (\App\Models\FacilityType::all() as $type)
-                <option
-                    value="{{ $type->id }}"
-                    {{ request('type_id') == $type->id ? 'selected' : '' }}
-                >
-                    {{ $type->name }}
-                </option>
-            @endforeach
-        </select>
-
-        {{-- Filter kapasitas --}}
-        <input
-            type="number"
-            name="min_capacity"
-            placeholder="Kapasitas minimum"
-            min="1"
-            value="{{ request('min_capacity') }}"
-        >
-
         <button type="submit">Cari</button>
-
-        <a href="{{ route('facilities.index') }}">Reset</a>
 
     </form>
 
@@ -54,38 +97,68 @@
     <hr>
 
 
-    {{-- Daftar fasilitas --}}
+    {{-- Hasil fasilitas --}}
     @forelse ($facilities as $facility)
 
-        <div>
-            <h2>{{ $facility->name }}</h2>
+        <div class="facility-card">
 
-            <p>
-                Tipe:
-                {{ $facility->type->name ?? '-' }}
-            </p>
+            {{-- Foto --}}
+            <div class="facility-image">
+                @if ($facility->photos->first())
+                    <img
+                        src="{{ asset('storage/' . $facility->photos->first()->file_path) }}"
+                        alt="{{ $facility->name }}"
+                    >
+                @else
+                    <div class="no-image"></div>
+                @endif
+            </div>
 
-            <p>
-                Lokasi:
-                {{ $facility->location->name ?? '-' }}
-            </p>
+            {{-- Informasi --}}
+            <div class="facility-info">
 
-            <p>
-                Kapasitas:
-                {{ $facility->capacity }} orang
-            </p>
+                <h2>{{ $facility->name }}</h2>
 
-            <p>
-                Status:
-                {{ $facility->status }}
-            </p>
+                <div class="facility-details">
+                    <div>
+                        <span>Tipe</span>
+                        <strong>{{ $facility->type->name ?? '-' }}</strong>
+                    </div>
 
-            <a href="{{ route('facilities.show', $facility) }}">
-                Lihat Detail
+                    <div>
+                        <span>Kapasitas</span>
+                        <strong>{{ $facility->capacity }} orang</strong>
+                    </div>
+
+                    <div>
+                        <span>Status</span>
+                        <strong>{{ ucfirst($facility->status) }}</strong>
+                    </div>
+
+                    <div>
+                        <span>Ketersediaan</span>
+                        <strong>Tersedia</strong>
+                    </div>
+
+                    <div>
+                        <span>Lokasi</span>
+                        <strong>{{ $facility->location->ruangan ?? '-' }}</strong>
+                    </div>
+                </div>
+
+            </div>
+
+            {{-- Panah / detail --}}
+            <a href="{{ route('facilities.show', [
+                'facility' => $facility,
+                'from' => url()->full(),
+            ]) }}"
+            class="facility-arrow"
+            >
+                ›
             </a>
-        </div>
 
-        <hr>
+        </div>
 
     @empty
 
@@ -95,7 +168,9 @@
 
 
     {{-- Pagination --}}
-    {{ $facilities->links() }}
+    @if ($facilities instanceof \Illuminate\Pagination\LengthAwarePaginator)
+        {{ $facilities->links() }}
+    @endif
 
 </body>
 </html>
