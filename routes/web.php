@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\AccountManagementController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Facility\FacilityController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Report\ReportController;
 use App\Http\Controllers\Reservation\ReservationController;
 use Illuminate\Support\Facades\Route;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\Route;
 // ==========================================================
 Route::get('/', [FacilityController::class, 'index'])->name('home');
 Route::get('/fasilitas', [FacilityController::class, 'index'])->name('facilities.index');
-Route::get('/fasilitas/fakultas/{faculty}', [FacilityController::class, 'byFaculty'])->name('facilities.by-faculty');
 Route::get('/fasilitas/{facility}', [FacilityController::class, 'show'])->name('facilities.show');
 
 // ==========================================================
@@ -28,6 +28,10 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+    // Profil (Orang 1) — bisa diakses semua role yang sudah login
+    Route::get('/profil', [ProfileController::class, 'show'])->name('profile.show');
+    Route::put('/profil', [ProfileController::class, 'update'])->name('profile.update');
 });
 
 // ==========================================================
@@ -70,13 +74,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Akun (Orang 1)
     Route::get('/akun', [AccountManagementController::class, 'index'])->name('accounts.index');
     Route::post('/akun', [AccountManagementController::class, 'store'])->name('accounts.store');
+    Route::get('/akun/{user}', [AccountManagementController::class, 'show'])->name('accounts.show');
     Route::post('/akun/{user}/verify', [AccountManagementController::class, 'verify'])->name('accounts.verify');
     Route::post('/akun/{user}/reject', [AccountManagementController::class, 'reject'])->name('accounts.reject');
+    Route::get('/akun/{user}/edit', [AccountManagementController::class, 'edit'])->name('accounts.edit');
+    Route::put('/akun/{user}', [AccountManagementController::class, 'update'])->name('accounts.update');
     Route::post('/akun/{user}/toggle-active', [AccountManagementController::class, 'toggleActive'])->name('accounts.toggle-active');
 
     // Fasilitas (Orang 2)
-    Route::get('/fasilitas/create', [FacilityController::class, 'create'])
-        ->name('facilities.create');
     Route::post('/fasilitas', [FacilityController::class, 'store'])->name('facilities.store');
     Route::put('/fasilitas/{facility}', [FacilityController::class, 'update'])->name('facilities.update');
 });
