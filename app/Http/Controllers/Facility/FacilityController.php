@@ -136,16 +136,37 @@ class FacilityController extends Controller
         return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil diperbarui.');
     }
 
-    public function byFaculty(string $faculty)
-    {
-        $facilities = Facility::query()
-            ->where('status', '!=', 'nonaktif')
-            ->whereHas('location', function ($q) use ($faculty) {
-                $q->where('fakultas', $faculty);
-            })
-            ->with(['type', 'location', 'photos'])
-            ->paginate(12);
+public function byFaculty(string $faculty)
+{
+    $facilities = Facility::query()
+        ->where('status', '!=', 'nonaktif')
+        ->whereHas('location', fn ($q) => $q->where('fakultas', $faculty))
+        ->with(['type', 'location', 'photos'])
+        ->paginate(12);
 
-        return view('facilities.by-faculty', compact('facilities', 'faculty'));
-    }
+    return view('facilities.by-group', [
+        'facilities' => $facilities,
+        'groupName' => $faculty,
+    ]);
+}
+
+public function byBuilding(string $building)
+{
+    $facilities = Facility::query()
+        ->where('status', '!=', 'nonaktif')
+        ->whereHas('location', function ($q) use ($building) {
+            $q->where('scope_level', 'universitas')
+              ->where(function ($q2) use ($building) {
+                  $q2->where('gedung', $building)
+                     ->orWhere('ruangan', $building);
+              });
+        })
+        ->with(['type', 'location', 'photos'])
+        ->paginate(12);
+
+    return view('facilities.by-group', [
+        'facilities' => $facilities,
+        'groupName' => $building,
+    ]);
+}
 }

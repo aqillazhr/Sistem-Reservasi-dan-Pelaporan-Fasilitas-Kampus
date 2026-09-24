@@ -201,6 +201,8 @@
             font-size: 15px;
         }
     </style>
+    @stack('styles')
+
 </head>
 <body>
 

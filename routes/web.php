@@ -28,6 +28,10 @@ Route::get('/', function () {
     });
 })->name('home');
 Route::get('/fasilitas', [FacilityController::class, 'index'])->name('facilities.index');
+
+Route::get('/fasilitas/fakultas/{faculty}', [FacilityController::class, 'byFaculty'])->name('facilities.by-faculty');
+Route::get('/fasilitas/gedung/{building}', [FacilityController::class, 'byBuilding'])->name('facilities.by-building');
+
 Route::get('/fasilitas/{facility}', [FacilityController::class, 'show'])->name('facilities.show');
 
 // Data slot terpakai (Orang 3 -> dipakai kalender availability Orang 2). Read-only, tanpa data pemohon.
