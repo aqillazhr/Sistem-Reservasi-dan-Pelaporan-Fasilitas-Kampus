@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Facility;
 
 use App\Http\Controllers\Controller;
 use App\Models\Facility;
+use App\Models\FacilityType;
+use App\Models\Location;
 use Illuminate\Http\Request;
 
 /**
@@ -56,6 +58,46 @@ class FacilityController extends Controller
         // ditampilkan di kalender availability.
 
         return view('facilities.show', compact('facility'));
+    }
+
+    public function create()
+    {
+        $types = FacilityType::all();
+
+        $locations = Location::query()
+            ->whereNotNull('fakultas')
+            ->get();
+
+        $faculties = $locations
+            ->pluck('fakultas')
+            ->unique()
+            ->sort()
+            ->values();
+
+        $buildings = $locations
+            ->whereNotNull('gedung')
+            ->pluck('gedung')
+            ->unique()
+            ->sort()
+            ->values();
+
+        $programsByFaculty = $locations
+            ->whereNotNull('prodi')
+            ->groupBy('fakultas')
+            ->map(function ($items) {
+                return $items
+                    ->pluck('prodi')
+                    ->unique()
+                    ->sort()
+                    ->values();
+            });
+
+        return view('admin.facilities.create', compact(
+            'types',
+            'faculties',
+            'buildings',
+            'programsByFaculty'
+        ));
     }
 
     public function store(Request $request)

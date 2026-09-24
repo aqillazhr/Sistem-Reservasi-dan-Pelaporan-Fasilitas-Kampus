@@ -75,6 +75,8 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/akun/{user}/toggle-active', [AccountManagementController::class, 'toggleActive'])->name('accounts.toggle-active');
 
     // Fasilitas (Orang 2)
+    Route::get('/fasilitas/create', [FacilityController::class, 'create'])
+        ->name('facilities.create');
     Route::post('/fasilitas', [FacilityController::class, 'store'])->name('facilities.store');
     Route::put('/fasilitas/{facility}', [FacilityController::class, 'update'])->name('facilities.update');
 });
