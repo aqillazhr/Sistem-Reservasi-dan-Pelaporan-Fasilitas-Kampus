@@ -3,6 +3,7 @@
 @section('title', 'Ajukan Reservasi')
 
 @section('content')
+
     @include('reservations._styles')
     @php
         $keep = \Illuminate\Support\Arr::only($filters, ['q', 'type_id', 'location_id', 'min_capacity']);

@@ -30,6 +30,36 @@ class DashboardController extends Controller
     public function pengguna()
     {
         // TODO Orang 3 & Orang 4: riwayat reservasi & laporan milik user login.
-        return view('dashboard.pengguna');
+        $userId = auth()->id();
+
+        $reports = Report::where('user_id', $userId)
+            ->whereIn('status', [
+                'baru',
+                'diproses',
+                'selesai',
+                'ditolak',
+            ])
+            ->latest()
+            ->get();
+
+        $newReports = $reports
+            ->where('status', 'baru')
+            ->count();
+
+        $processingReports = $reports
+            ->where('status', 'diproses')
+            ->count();
+
+        $totalReports = $reports->count();
+
+        return view(
+            'dashboard.pengguna',
+            compact(
+                'reports',
+                'newReports',
+                'processingReports',
+                'totalReports'
+            )
+        );
     }
 }
