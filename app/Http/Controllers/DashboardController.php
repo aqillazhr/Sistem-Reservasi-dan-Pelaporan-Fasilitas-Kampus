@@ -20,68 +20,77 @@ class DashboardController extends Controller
     }
 
     public function pengguna()
-    {
+{
+    // Ringkasan per fakultas
+    $facultyGroups = Facility::query()
+        ->where('status', '!=', 'nonaktif')
+        ->whereHas('location', fn ($q) => $q->where('scope_level', 'fakultas'))
+        ->with(['location', 'photos'])
+        ->get()
+        ->groupBy(fn ($facility) => $facility->location->fakultas)
+        ->sortKeys()
+        ->map(fn ($facilities, $fakultas) => $this->summarizeGroup(
+            $facilities,
+            $fakultas,
+            'facilities.by-faculty'
+        ))
+        ->values();
 
-        // Ringkasan per fakultas
-        $facultyGroups = Facility::query()
-            ->where('status', '!=', 'nonaktif')
-            ->whereHas('location', fn ($q) => $q->where('scope_level', 'fakultas'))
-            ->with(['location', 'photos'])
-            ->get()
-            ->groupBy(fn ($facility) => $facility->location->fakultas)
-            ->sortKeys()
-            ->map(fn ($facilities, $fakultas) => $this->summarizeGroup($facilities, $fakultas, 'facilities.by-faculty'))
-            ->values();
+    // Ringkasan per gedung (tingkat universitas)
+    $buildingGroups = Facility::query()
+        ->where('status', '!=', 'nonaktif')
+        ->whereHas('location', fn ($q) => $q->where('scope_level', 'universitas'))
+        ->with(['location', 'photos'])
+        ->get()
+        ->groupBy(fn ($facility) =>
+            $facility->location->gedung
+            ?? $facility->location->ruangan
+            ?? 'Fasilitas Lainnya'
+        )
+        ->sortKeys()
+        ->map(fn ($facilities, $building) => $this->summarizeGroup(
+            $facilities,
+            $building,
+            'facilities.by-building'
+        ))
+        ->values();
 
-        // Ringkasan per gedung(tingkat universitas)
-        $buildingGroups = Facility::query()
-            ->where('status', '!=', 'nonaktif')
-            ->whereHas('location', fn ($q) => $q->where('scope_level', 'universitas'))
-            ->with(['location', 'photos'])
-            ->get()
-            ->groupBy(fn ($facility) => $facility->location->gedung ?? $facility->location->ruangan ?? 'Fasilitas Lainnya')
-            ->sortKeys()
-            ->map(fn ($facilities, $building) => $this->summarizeGroup($facilities, $building, 'facilities.by-building'))
-            ->values();
+    $facilityGroups = $facultyGroups->concat($buildingGroups);
 
-        $facilityGroups = $facultyGroups->concat($buildingGroups);
+    // Riwayat laporan milik user login
+    $userId = auth()->id();
 
-        return view('dashboard.pengguna', compact('facilityGroups'));
+    $reports = Report::where('user_id', $userId)
+        ->whereIn('status', [
+            'baru',
+            'diproses',
+            'selesai',
+            'ditolak',
+        ])
+        ->latest()
+        ->get();
 
-        // TODO Orang 3 & Orang 4: riwayat reservasi & laporan milik user login.
-        $userId = auth()->id();
+    $newReports = $reports
+        ->where('status', 'baru')
+        ->count();
 
-        $reports = Report::where('user_id', $userId)
-            ->whereIn('status', [
-                'baru',
-                'diproses',
-                'selesai',
-                'ditolak',
-            ])
-            ->latest()
-            ->get();
+    $processingReports = $reports
+        ->where('status', 'diproses')
+        ->count();
 
-        $newReports = $reports
-            ->where('status', 'baru')
-            ->count();
+    $totalReports = $reports->count();
 
-        $processingReports = $reports
-            ->where('status', 'diproses')
-            ->count();
-
-        $totalReports = $reports->count();
-
-        return view(
-            'dashboard.pengguna',
-            compact(
-                'reports',
-                'newReports',
-                'processingReports',
-                'totalReports'
-            )
-        );
-
-    }
+    return view(
+        'dashboard.pengguna',
+        compact(
+            'facilityGroups',
+            'reports',
+            'newReports',
+            'processingReports',
+            'totalReports'
+        )
+    );
+}
 
     private function summarizeGroup($facilities, string $groupName, string $routeName): object
     {
