@@ -2,45 +2,23 @@
 
 namespace Database\Seeders;
 
-use App\Models\FacilityType;
-use App\Models\Location;
-use App\Models\User;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Akun admin default supaya tim bisa langsung login dan coba fitur
-        // CRUD akun/fasilitas tanpa harus insert manual ke DB.
-        User::firstOrCreate(
-            ['email' => 'admin@kampus.ac.id'],
-            [
-                'name' => 'Admin PPK',
-                'password' => Hash::make('password'),
-                'role' => 'admin',
-                'user_type' => null,
-                'status' => 'verified',
-                'account_status' => 'aktif',
-            ]
-        );
+        $this->call([
+            // 1. Master data & akun wajib ada lebih dulu
+            FacilityTypeSeeder::class,
+            UserSeeder::class,
 
-        // Data master jenis fasilitas sesuai deskripsi project.
-        foreach (['Ruang Kelas', 'Aula', 'Laboratorium', 'Alat', 'Lapangan'] as $type) {
-            FacilityType::firstOrCreate(['name' => $type]);
-        }
+            // 2. Fasilitas + lokasi (FK ke facility_types)
+            FacilitySeeder::class,
 
-        // Contoh lokasi tingkat universitas, supaya ada minimal 1 lokasi
-        // untuk dipakai saat testing tambah fasilitas pertama.
-        // Ingat: relasi locations<->facilities mandatory-mandatory, jadi
-        // idealnya tiap location baru langsung dibuatkan fasilitas pertamanya
-        // (lihat README-database.pdf, Asumsi Perancangan poin 3 & 11).
-        Location::firstOrCreate([
-            'scope_level' => 'universitas',
-            'fakultas' => null,
-            'gedung' => null,
-            'ruangan' => null,
+            // 3. Transaksi (FK ke users & facilities)
+            ReservationSeeder::class,
+            ReportSeeder::class,
         ]);
     }
 }

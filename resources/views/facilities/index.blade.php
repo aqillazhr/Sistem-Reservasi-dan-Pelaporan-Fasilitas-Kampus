@@ -76,8 +76,11 @@
 <body>
 
     <h1>Hasil Pencarian</h1>
-    @if ($search)
-        <p>Hasil pencarian untuk: <strong>{{ $search }}</strong></p>
+    @if ($search || $capacity)
+        <p>Hasil pencarian
+            @if ($search) untuk: <strong>{{ $search }}</strong>@endif
+            @if ($capacity) · kapasitas minimal <strong>{{ $capacity }}</strong> orang @endif
+        </p>
     @endif
     {{-- Search & Filter --}}
     <form method="GET" action="{{ route('facilities.index') }}">
@@ -87,6 +90,16 @@
             name="search"
             placeholder="Cari fasilitas..."
             value="{{ request('search') }}"
+        >
+
+        <input
+            type="number"
+            name="kapasitas"
+            min="1"
+            max="100000"
+            placeholder="Kapasitas minimal"
+            value="{{ $capacity }}"
+            aria-label="Kapasitas minimal"
         >
 
         <button type="submit">Cari</button>
@@ -162,7 +175,11 @@
 
     @empty
 
-        <p>Tidak ada fasilitas yang ditemukan.</p>
+        @if ($search || $capacity)
+            <p>Tidak ada fasilitas yang ditemukan.</p>
+        @else
+            <p>Ketik nama fasilitas atau isi kapasitas minimal, lalu klik Cari.</p>
+        @endif
 
     @endforelse
 

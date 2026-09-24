@@ -12,9 +12,28 @@ use Illuminate\Support\Facades\Route;
 // ==========================================================
 // PUBLIC (Pengunjung, tanpa login)
 // ==========================================================
-Route::get('/', [FacilityController::class, 'index'])->name('home');
+// Landing: tamu diarahkan ke login, yang sudah login langsung ke dashboard sesuai role.
+// Pengunjung tetap bisa melihat daftar fasilitas lewat /fasilitas (tanpa login).
+Route::get('/', function () {
+    $user = auth()->user();
+
+    if (! $user) {
+        return redirect()->route('login');
+    }
+
+    return redirect()->route(match ($user->role) {
+        'admin' => 'admin.dashboard',
+        'petugas' => 'petugas.dashboard',
+        default => 'pengguna.dashboard',
+    });
+})->name('home');
 Route::get('/fasilitas', [FacilityController::class, 'index'])->name('facilities.index');
 Route::get('/fasilitas/{facility}', [FacilityController::class, 'show'])->name('facilities.show');
+
+// Data slot terpakai (Orang 3 -> dipakai kalender availability Orang 2). Read-only, tanpa data pemohon.
+Route::get('/fasilitas/{facility}/slot', [ReservationController::class, 'slots'])
+    ->middleware('throttle:60,1')
+    ->name('facilities.slots');
 
 // ==========================================================
 // AUTH (Orang 1)
@@ -40,9 +59,19 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth', 'role:pengguna'])->prefix('app')->name('pengguna.')->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'pengguna'])->name('dashboard');
 
-    // Reservasi (Orang 3)
-    Route::post('/reservasi', [ReservationController::class, 'store'])->name('reservations.store');
-    Route::post('/reservasi/{reservation}/batal', [ReservationController::class, 'cancel'])->name('reservations.cancel');
+    // Reservasi (Orang 3) — urutan penting: /saya & /create HARUS sebelum /{reservation}
+    Route::get('/reservasi', [ReservationController::class, 'hub'])->name('reservations.hub');
+    Route::get('/reservasi/saya', [ReservationController::class, 'history'])->name('reservations.index');
+    Route::get('/reservasi/create', [ReservationController::class, 'create'])->name('reservations.create');
+    Route::post('/reservasi', [ReservationController::class, 'store'])
+        ->middleware('throttle:10,1')
+        ->name('reservations.store');
+    Route::get('/reservasi/{reservation}', [ReservationController::class, 'show'])
+        ->whereNumber('reservation')
+        ->name('reservations.show');
+    Route::post('/reservasi/{reservation}/batal', [ReservationController::class, 'cancel'])
+        ->whereNumber('reservation')
+        ->name('reservations.cancel');
 
     // Laporan (Orang 4)
     Route::post('/laporan', [ReportController::class, 'store'])->name('reports.store');
