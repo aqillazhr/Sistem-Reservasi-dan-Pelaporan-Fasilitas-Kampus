@@ -21,6 +21,7 @@ class DashboardController extends Controller
 
     public function pengguna()
     {
+
         // Ringkasan per fakultas
         $facultyGroups = Facility::query()
             ->where('status', '!=', 'nonaktif')
@@ -46,6 +47,40 @@ class DashboardController extends Controller
         $facilityGroups = $facultyGroups->concat($buildingGroups);
 
         return view('dashboard.pengguna', compact('facilityGroups'));
+
+        // TODO Orang 3 & Orang 4: riwayat reservasi & laporan milik user login.
+        $userId = auth()->id();
+
+        $reports = Report::where('user_id', $userId)
+            ->whereIn('status', [
+                'baru',
+                'diproses',
+                'selesai',
+                'ditolak',
+            ])
+            ->latest()
+            ->get();
+
+        $newReports = $reports
+            ->where('status', 'baru')
+            ->count();
+
+        $processingReports = $reports
+            ->where('status', 'diproses')
+            ->count();
+
+        $totalReports = $reports->count();
+
+        return view(
+            'dashboard.pengguna',
+            compact(
+                'reports',
+                'newReports',
+                'processingReports',
+                'totalReports'
+            )
+        );
+
     }
 
     private function summarizeGroup($facilities, string $groupName, string $routeName): object

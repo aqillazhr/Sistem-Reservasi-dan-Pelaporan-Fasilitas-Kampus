@@ -78,9 +78,15 @@ Route::middleware(['auth', 'role:pengguna'])->prefix('app')->name('pengguna.')->
         ->name('reservations.cancel');
 
     // Laporan (Orang 4)
-    Route::post('/laporan', [ReportController::class, 'store'])->name('reports.store');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/create', [ReportController::class, 'create'])->name('reports.create');
+    Route::post('/laporan/draft', [ReportController::class, 'storeDraft'])->name('reports.store-draft');
+    Route::get('/laporan/draft', [ReportController::class, 'drafts'])->name('reports.drafts');
+    Route::delete('/laporan/{report}/foto/{photo}',[ReportController::class, 'deletePhoto'])->name('reports.delete-photo');
+    Route::get('/laporan/{report}/preview', [ReportController::class, 'preview'])->name('reports.preview');
+    Route::get('/laporan/{report}/edit', [ReportController::class, 'editDraft'])->name('reports.edit');
+    Route::put('/laporan/{report}/draft', [ReportController::class, 'updateDraft'])->name('reports.update-draft');
+    Route::post('/laporan/{report}/submit', [ReportController::class, 'submitDraft'])->name('reports.submit');
     Route::get('/laporan/{report}', [ReportController::class, 'show'])->name('reports.show');
 });
 

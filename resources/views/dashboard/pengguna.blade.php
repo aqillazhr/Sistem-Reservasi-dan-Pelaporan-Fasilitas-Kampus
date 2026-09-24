@@ -74,8 +74,16 @@
     <h1>Dashboard Saya</h1>
     <p>Ini shell dashboard pengguna. Isi riwayat reservasi & laporan milik user login diisi Orang 3 & Orang 4.</p>
 
-    {{-- Reservasi (Orang 3) — tetap dipertahankan --}}
+    {{-- Reservasi (Orang 3) --}}
     <x-dashboard.reservation-summary />
+
+    {{-- Laporan (Orang 4) --}}
+    <x-dashboard.report-summary
+        :reports="$reports"
+        :new-reports="$newReports"
+        :processing-reports="$processingReports"
+        :total-reports="$totalReports"
+    />
 
     <h2 class="dashboard-section-title">Semua Fasilitas</h2>
 
