@@ -12,34 +12,84 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
-            'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'name'           => fake('id_ID')->name(),
+            'email'          => fake()->unique()->safeEmail(),
+            'password'       => static::$password ??= Hash::make('password'),
+            'role'           => 'pengguna',
+            'user_type'      => fake()->randomElement(['mahasiswa', 'dosen', 'staf']),
+            'status'         => 'verified',
+            'account_status' => 'aktif',
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    /** Pengguna biasa (mahasiswa/dosen/staf) yang sudah verified. */
+    public function pengguna(): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
+        return $this->state(fn () => [
+            'role'           => 'pengguna',
+            'user_type'      => fake()->randomElement(['mahasiswa', 'dosen', 'staf']),
+            'status'         => 'verified',
+            'account_status' => 'aktif',
         ]);
+    }
+
+    /** Petugas operasional kampus. */
+    public function petugas(): static
+    {
+        return $this->state(fn () => [
+            'role'           => 'petugas',
+            'user_type'      => null,
+            'status'         => 'verified',
+            'account_status' => 'aktif',
+        ]);
+    }
+
+    /** Admin sistem. */
+    public function admin(): static
+    {
+        return $this->state(fn () => [
+            'role'           => 'admin',
+            'user_type'      => null,
+            'status'         => 'verified',
+            'account_status' => 'aktif',
+        ]);
+    }
+
+    /** Akun yang masih menunggu verifikasi. */
+    public function pending(): static
+    {
+        return $this->state(fn () => [
+            'status'         => 'pending',
+            'account_status' => null,
+        ]);
+    }
+
+    /** Akun yang ditolak. */
+    public function rejected(): static
+    {
+        return $this->state(fn () => [
+            'status'         => 'rejected',
+            'account_status' => null,
+        ]);
+    }
+
+    /** Akun dinonaktifkan. */
+    public function nonaktif(): static
+    {
+        return $this->state(fn () => [
+            'status'         => 'verified',
+            'account_status' => 'nonaktif',
+        ]);
+    }
+
+    /** Soft-deleted user. */
+    public function deleted(): static
+    {
+        return $this->state(fn () => ['deleted_at' => now()]);
     }
 }

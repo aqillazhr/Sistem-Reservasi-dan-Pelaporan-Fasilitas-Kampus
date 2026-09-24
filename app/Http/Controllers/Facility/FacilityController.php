@@ -28,26 +28,32 @@ class FacilityController extends Controller
     {
         $search = trim($request->search ?? '');
 
+        // Kapasitas minimal (angka bulat 1..100000); input tidak valid diabaikan.
+        $capacity = filter_var($request->query('kapasitas'), FILTER_VALIDATE_INT, [
+            'options' => ['min_range' => 1, 'max_range' => 100000],
+        ]);
+        $capacity = $capacity === false ? null : $capacity;
+
         $facilities = collect();
 
-        if ($search !== '') {
+        if ($search !== '' || $capacity !== null) {
             $facilities = Facility::query()
                 ->where('status', '!=', 'nonaktif')
                 ->when($search !== '', function ($q) use ($search) {
+                    // Cara lama tetap jalan: ketik "kapasitas 100" di kolom nama
                     if (preg_match('/kapasitas\s*(\d+)/i', $search, $matches)) {
-                        $capacity = (int) $matches[1];
-
-                        $q->where('capacity', '>=', $capacity);
+                        $q->where('capacity', '>=', (int) $matches[1]);
                     } else {
                         $q->where('name', 'like', '%'.$search.'%');
                     }
                 })
+                ->when($capacity !== null, fn ($q) => $q->where('capacity', '>=', $capacity))
                 ->with(['type', 'location', 'photos'])
                 ->paginate(12)
                 ->withQueryString();
         }
 
-        return view('facilities.index', compact('facilities', 'search'));
+        return view('facilities.index', compact('facilities', 'search', 'capacity'));
     }
 
     public function show(Facility $facility)
