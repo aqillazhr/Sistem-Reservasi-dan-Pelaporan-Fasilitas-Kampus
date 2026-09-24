@@ -46,6 +46,9 @@ Route::middleware(['auth', 'role:pengguna'])->prefix('app')->name('pengguna.')->
 
     // Laporan (Orang 4)
     Route::post('/laporan', [ReportController::class, 'store'])->name('reports.store');
+    Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/laporan/create', [ReportController::class, 'create'])->name('reports.create');
+    Route::get('/laporan/{report}', [ReportController::class, 'show'])->name('reports.show');
 });
 
 // ==========================================================
