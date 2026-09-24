@@ -3,29 +3,24 @@
 @section('title', 'Daftar Akun')
 
 @section('content')
-    <h1>Daftar Akun Pengguna</h1>
-
-    {{-- Loading state saat submit dihandle simple lewat disable button di JS bawah,
-         cukup buat kebutuhan tugas ini, boleh diganti spinner sesuai desain Figma. --}}
+    <h1 class="visually-hidden">Daftar Akun Pengguna</h1>
 
     <form method="POST" action="{{ route('register') }}" id="registerForm">
         @csrf
 
-        {{-- Langkah: "Memasukkan data diri" --}}
         <div class="form-group">
             <label for="name">Nama Lengkap</label>
-            <input type="text" id="name" name="name" value="{{ old('name') }}" required>
+            <input type="text" id="name" name="name" placeholder="Masukkan nama lengkap"
+                   value="{{ old('name') }}" required>
             @error('name')
                 <div class="error-text">{{ $message }}</div>
             @enderror
         </div>
 
-        {{-- Langkah: "Memasukkan email khusus pengguna/petugas".
-             Field-nya sama untuk semua, cuma pengguna yang boleh isi form ini sendiri
-             (petugas dibuat langsung oleh admin, bukan lewat form publik). --}}
         <div class="form-group">
             <label for="email">Email</label>
-            <input type="email" id="email" name="email" value="{{ old('email') }}" required>
+            <input type="email" id="email" name="email" placeholder="Masukkan email"
+                   value="{{ old('email') }}" required>
             @error('email')
                 <div class="error-text">{{ $message }}</div>
             @enderror
@@ -34,7 +29,7 @@
         <div class="form-group">
             <label for="user_type">Jenis Pengguna</label>
             <select id="user_type" name="user_type" required>
-                <option value="" disabled {{ old('user_type') ? '' : 'selected' }}>Pilih jenis</option>
+                <option value="" disabled {{ old('user_type') ? '' : 'selected' }}>Pilih Jenis</option>
                 <option value="mahasiswa" {{ old('user_type') === 'mahasiswa' ? 'selected' : '' }}>Mahasiswa</option>
                 <option value="dosen" {{ old('user_type') === 'dosen' ? 'selected' : '' }}>Dosen</option>
                 <option value="staf" {{ old('user_type') === 'staf' ? 'selected' : '' }}>Staf</option>
@@ -44,23 +39,37 @@
             @enderror
         </div>
 
-        {{-- Langkah: "Memasukkan password" --}}
         <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required minlength="8">
+            <label for="password">Masukkan Kata Sandi</label>
+            <input type="password" id="password" name="password" placeholder="Masukkan kata sandi"
+                   required minlength="8">
             @error('password')
                 <div class="error-text">{{ $message }}</div>
             @enderror
         </div>
 
-        {{-- Langkah: "Memasukkan ulang password" (konfirmasi) --}}
         <div class="form-group">
-            <label for="password_confirmation">Konfirmasi Password</label>
-            <input type="password" id="password_confirmation" name="password_confirmation" required minlength="8">
+            <label for="password_confirmation">Konfirmasi Kata Sandi</label>
+            <input type="password" id="password_confirmation" name="password_confirmation"
+                   placeholder="Masukkan kembali kata sandi" required minlength="8">
         </div>
 
-        {{-- Langkah: "Menekan tombol submit" --}}
-        <button type="submit" class="btn-primary" id="submitBtn">Daftar</button>
+        <div class="form-actions">
+            <a href="{{ route('login') }}" class="btn btn-secondary">
+                Batalkan
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.5"/>
+                    <line x1="6.5" y1="17.5" x2="17.5" y2="6.5" stroke="currentColor" stroke-width="1.5"/>
+                </svg>
+            </a>
+            <button type="submit" class="btn btn-primary" id="submitBtn">
+                Daftar
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M10 17l5-5-5-5M4 12h11M19 5v14" stroke="currentColor" stroke-width="1.8"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
     </form>
 
     <p class="auth-footer">
@@ -68,7 +77,6 @@
     </p>
 
     <script>
-        // Loading state sederhana: disable tombol pas submit biar nggak double-klik.
         document.getElementById('registerForm').addEventListener('submit', function () {
             const btn = document.getElementById('submitBtn');
             btn.disabled = true;
