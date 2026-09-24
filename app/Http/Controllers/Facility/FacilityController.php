@@ -130,16 +130,31 @@ class FacilityController extends Controller
         return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil diperbarui.');
     }
 
-    public function byFaculty(string $faculty)
+    public function byFaculty(Request $request, string $faculty)
     {
         $facilities = Facility::query()
             ->where('status', '!=', 'nonaktif')
+
+            // Filter berdasarkan fakultas
             ->whereHas('location', function ($q) use ($faculty) {
                 $q->where('fakultas', $faculty);
             })
-            ->with(['type', 'location', 'photos'])
-            ->paginate(12);
 
-        return view('facilities.by-faculty', compact('facilities', 'faculty'));
+            // Filter berdasarkan tipe
+            ->when($request->type_id, function ($q) use ($request) {
+                $q->where('type_id', $request->type_id);
+            })
+
+            ->with(['type', 'location', 'photos'])
+            ->paginate(12)
+            ->withQueryString();
+
+        $types = FacilityType::all();
+
+        return view('facilities.by-faculty', compact(
+            'facilities',
+            'faculty',
+            'types'
+        ));
     }
 }
