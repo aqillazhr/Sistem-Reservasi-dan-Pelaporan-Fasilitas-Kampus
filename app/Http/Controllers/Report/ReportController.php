@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Report;
 
 use App\Http\Controllers\Controller;
+use App\Models\Facility;
 use App\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,8 +24,48 @@ use Illuminate\Support\Facades\DB;
  * - rekap(): export CSV/Excel/PDF okupansi (dari Reservation milik Orang 3)
  *   + frekuensi kerusakan (dari Report sendiri)
  */
+
 class ReportController extends Controller
 {
+    public function index(Request $request)
+    {
+        $reports = Report::with([
+            'facility.location',
+            'photos',
+        ])
+        ->where('user_id', $request->user()->id)
+        ->latest()
+        ->get();
+
+        return view('reports.index', compact('reports'));
+    }
+
+    public function create()
+    {
+        $facilities = \App\Models\Facility::with('location')
+            ->where('status', 'aktif')
+            ->orderBy('name')
+            ->get();
+
+        return view('reports.create', compact('facilities'));
+    }
+
+    //User bisa melihat detail laporan miliknya sendiri, tapi tidak bisa melihat laporan orang lain.
+    public function show(Request $request, Report $report)
+    {
+        abort_unless(
+            $report->user_id === $request->user()->id,
+            403
+        );
+
+        $report->load([
+            'facility.location',
+            'photos',
+        ]);
+
+        return view('reports.show', compact('report'));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -56,7 +97,7 @@ class ReportController extends Controller
             return $report;
         });
 
-        return redirect()->route('reports.show', $report)->with('status', 'Laporan berhasil dikirim.');
+        return redirect()->route('pengguna.reports.show', $report)->with('status', 'Laporan berhasil dikirim.');
     }
 
     public function updateStatus(Request $request, Report $report)
@@ -65,6 +106,20 @@ class ReportController extends Controller
             'status' => ['required', 'in:diproses,selesai,ditolak'],
             'resolution_note' => ['nullable', 'required_if:status,selesai,ditolak', 'string'],
         ]);
+
+        if ($report->status === 'baru' && $validated['status'] !== 'diproses')
+        {
+            return back()->withErrors([
+                'status' => 'Laporan baru hanya dapat diubah menjadi diproses.',
+            ]);
+        }
+
+        if ($report->status === 'diproses' && !in_array($validated['status'],['selesai', 'ditolak'],true)) 
+        {
+            return back()->withErrors([
+                'status' => 'Laporan yang sedang diproses hanya dapat menjadi selesai atau ditolak.',
+            ]);
+        }
 
         $report->update([
             'status' => $validated['status'],
