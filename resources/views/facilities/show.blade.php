@@ -1,107 +1,20 @@
-<!DOCTYPE html>
-<html lang="id">
+@extends('layouts.dashboard')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@section('title', 'Detail ' . $facility->name)
 
-    <title>Detail {{ $facility->name }}</title>
+@push('styles')
 
     <style>
         * {
             box-sizing: border-box;
         }
 
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background: #faf7ff;
-            color: #2d1b4e;
-        }
-
-        /* =========================
-           HEADER
-        ========================= */
-
-        .navbar {
-            height: 116px;
-            background: #281044;
-            color: white;
-
-            display: flex;
-            align-items: center;
-
-            padding: 0 45px;
-            gap: 50px;
-        }
-
-        .logo {
-            width: 100px;
-            text-align: center;
-        }
-
-        .logo-box {
-            width: 64px;
-            height: 64px;
-            background: linear-gradient(135deg, #8f45ed, #b678ff);
-            margin: auto;
-        }
-
-        .logo-text {
-            font-size: 24px;
-            font-weight: bold;
-            margin-top: -2px;
-        }
-
-        .nav-menu {
-            display: flex;
-            gap: 50px;
-            align-items: center;
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .nav-menu a {
-            color: white;
-            text-decoration: none;
-        }
-
-        .search-box {
-            margin-left: auto;
-        }
-
-        .search-box input {
-            width: 295px;
-            height: 44px;
-
-            border-radius: 8px;
-            border: 2px solid #a96cff;
-
-            padding: 0 15px;
-            font-size: 18px;
-        }
-
-        .avatar {
-            width: 68px;
-            height: 68px;
-
-            border-radius: 50%;
-            background: #b98bf4;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            font-size: 28px;
-        }
-
-
         /* =========================
            CONTENT
         ========================= */
 
         .container {
-            padding: 55px 44px;
+            padding: 20px 0 40px;
         }
 
         .back-button {
@@ -204,6 +117,31 @@
             color: #267326;
         }
 
+        .detail-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+        }
+
+        .detail-header h1 {
+            margin: 5px 0 25px;
+        }
+
+        .reserve-button {
+            display: inline-block;
+            background: #54269a;
+            color: white;
+            padding: 10px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .reserve-button:hover {
+            background: #7133d1;
+        }
 
         /* =========================
            JADWAL
@@ -446,54 +384,7 @@
             background: #f1e8ff;
         }
     </style>
-</head>
-
-
-<body>
-
-    <!-- =========================
-         NAVBAR
-    ========================= -->
-
-    {{-- <nav class="navbar">
-
-        <div class="logo">
-            <div class="logo-box"></div>
-            <div class="logo-text">
-                Nama App
-            </div>
-        </div>
-
-
-        <div class="nav-menu">
-
-            <a href="#">
-                ⌂ Dashboard
-            </a>
-
-            <a href="#">
-                ⟲ Riwayat
-            </a>
-
-            <a href="#">
-                ▧ Lapor Kerusakan
-            </a>
-
-        </div>
-
-
-        <div class="search-box">
-
-            <input type="text" placeholder="⌕ Cari fasilitas">
-
-        </div>
-
-
-        <div class="avatar">
-            VN
-        </div>
-
-    </nav> --}}
+    @endpush
 
 
 
@@ -501,6 +392,7 @@
          CONTENT
     ========================= -->
 
+    @section('content')
     <main class="container">
 
 
@@ -511,9 +403,13 @@
         </a>
 
 
-        <h1>
-            Detail Fasilitas
-        </h1>
+        <div class="detail-header">
+            <h1>Detail Fasilitas</h1>
+
+            <a href="{{ route('pengguna.reservations.create') }}" class="reserve-button">
+                Ajukan Reservasi
+            </a>
+        </div>
 
 
 
@@ -1161,6 +1057,4 @@
         });
     </script>
 
-</body>
-
-</html>
+@endsection

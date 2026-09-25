@@ -12,7 +12,7 @@
         --wait:   #ffe08a;
         --past:   #e5e7eb;
 
-        max-width: 1200px;
+        width: 100%;
         color: var(--ink);
         font-family: 'Sora', Helvetica, sans-serif;
     }
@@ -138,6 +138,7 @@
     }
     .rsv .badge.pending   { background: var(--wait); color: #5a3e00; }
     .rsv .badge.approved  { background: var(--free); color: #1a5c1a; }
+    .rsv .badge.selesai   { background: #e0f2fe; color: #0c4a6e; }
     .rsv .badge.rejected,
     .rsv .badge.cancelled { background: #f3d1d1; color: #7a271a; }
 
@@ -166,7 +167,7 @@
     /* ── Slot board (kalender) ── */
     .rsv .board {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+        grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
         gap: 6px;
         margin: 12px 0;
     }
