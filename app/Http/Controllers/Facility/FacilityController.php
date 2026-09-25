@@ -256,24 +256,66 @@ class FacilityController extends Controller
 
     public function byFaculty(Request $request, string $faculty)
     {
+        $typeId = $request->query('type_id');
+
+        $status = $request->query('status');
+
+        $capacityMin = filter_var(
+            $request->query('capacity_min'),
+            FILTER_VALIDATE_INT
+        );
+
+        $capacityMax = filter_var(
+            $request->query('capacity_max'),
+            FILTER_VALIDATE_INT
+        );
+
+        $capacityMin = $capacityMin === false ? null : $capacityMin;
+        $capacityMax = $capacityMax === false ? null : $capacityMax;
+
         $facilities = Facility::query()
-            ->where('status', '!=', 'nonaktif')
+
+            // Tetap hanya fasilitas dari fakultas yang sedang dibuka
             ->whereHas('location', function ($q) use ($faculty) {
                 $q->where('fakultas', $faculty);
             })
-            ->when($request->type_id, function ($q) use ($request) {
-                $q->where('type_id', $request->type_id);
+
+            // Filter tipe
+            ->when($typeId, function ($q) use ($typeId) {
+                $q->where('type_id', $typeId);
             })
+
+            // Filter status
+            ->when($status, function ($q) use ($status) {
+                $q->where('status', $status);
+            })
+
+            // Kapasitas minimum
+            ->when($capacityMin !== null, function ($q) use ($capacityMin) {
+                $q->where('capacity', '>=', $capacityMin);
+            })
+
+            // Kapasitas maksimum
+            ->when($capacityMax !== null, function ($q) use ($capacityMax) {
+                $q->where('capacity', '<=', $capacityMax);
+            })
+
             ->with(['type', 'location', 'photos'])
+
             ->paginate(12)
+
             ->withQueryString();
 
-        $types = FacilityType::all();
+        $types = FacilityType::orderBy('name')->get();
 
         return view('facilities.by-faculty', compact(
             'facilities',
             'faculty',
-            'types'
+            'types',
+            'typeId',
+            'status',
+            'capacityMin',
+            'capacityMax'
         ));
     }
 
