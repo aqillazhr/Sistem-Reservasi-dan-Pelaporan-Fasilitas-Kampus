@@ -10,10 +10,13 @@
     }
 
     .history-title {
-        font-size: 28px;
+        font-family: 'Sora', Helvetica, sans-serif;
         font-weight: 700;
-        color: #260f45;
-        margin-bottom: 18px;
+        font-size: 40px;
+        color: #501e91;
+        margin: 0 0 6px;
+        letter-spacing: 0;
+        line-height: normal;
     }
 
     .tabs {
