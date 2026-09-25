@@ -5,31 +5,30 @@
 @section('content')
 
     @include('reservations._styles')
-    @php
-        $keep = \Illuminate\Support\Arr::only($filters, ['q', 'type_id', 'location_id', 'min_capacity']);
-        $label = fn ($t) => str_replace(':', '.', $t);
-    @endphp
+    
     <div class="rsv">
         <h1>Ajukan reservasi</h1>
         <p class="sub">1. Pilih fasilitas · 2. Pilih tanggal dan slot · 3. Isi tujuan dan kirim.
             Reservasi bisa diajukan sampai {{ config('reservation.max_days_ahead') }} hari ke depan.</p>
 
-        @if ($errors->has('facility_id'))
-            <div class="alert" role="alert">{{ $errors->first('facility_id') }}</div>
+        @if ($errors->has('facility_id') || session('error'))
+            <div class="alert" style="background:#f3d1d1;color:#7a271a;padding:12px;border-radius:6px;margin-bottom:16px;">
+                {{ $errors->first('facility_id') ?: session('error') }}
+            </div>
         @endif
 
         {{-- 1. Cari / filter fasilitas --}}
         <div class="card-header">
             <h2>Cari fasilitas</h2>
-            <form method="GET" action="{{ route('pengguna.reservations.create') }}">
+            <form id="filterForm" onsubmit="event.preventDefault(); loadFacilities();">
                 <div class="row">
-                    <div><label for="q">Nama</label><input id="q" name="q" value="{{ $filters['q'] ?? '' }}" maxlength="100" placeholder="Cari nama fasilitas..."></div>
+                    <div><label for="q">Nama</label><input id="q" name="q" maxlength="100" placeholder="Cari nama fasilitas..."></div>
                     <div>
                         <label for="type_id">Tipe</label>
                         <select id="type_id" name="type_id">
                             <option value="">Semua tipe</option>
                             @foreach ($types as $t)
-                                <option value="{{ $t->id }}" @selected(($filters['type_id'] ?? null) == $t->id)>{{ $t->name }}</option>
+                                <option value="{{ $t->id }}">{{ $t->name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -45,41 +44,28 @@
                                                 ->filter()->implode(' › ');
                                             $locLabel = $locLabel ?: 'Fasilitas Universitas';
                                         @endphp
-                                        <option value="{{ $loc->id }}" @selected(($filters['location_id'] ?? null) == $loc->id)>
-                                            {{ $locLabel }}
-                                        </option>
+                                        <option value="{{ $loc->id }}">{{ $locLabel }}</option>
                                     @endforeach
                                 </optgroup>
                             @endforeach
                         </select>
                     </div>
-                    <div><label for="min_capacity">Kapasitas minimal</label><input id="min_capacity" name="min_capacity" type="number" min="1" value="{{ $filters['min_capacity'] ?? '' }}" placeholder="Contoh: 30"></div>
+                    <div><label for="min_capacity">Kapasitas minimal</label><input id="min_capacity" name="min_capacity" type="number" min="1" placeholder="Contoh: 30"></div>
                     <div><button class="btn primary" type="submit">Cari</button></div>
                 </div>
             </form>
 
-            <div class="list" style="margin-top:16px">
-                @forelse ($facilities as $f)
-                    <a class="card item" href="{{ route('pengguna.reservations.create', $keep + ['facility' => $f->id, 'date' => $date]) }}"
-                       @if ($selected && $selected->id === $f->id) aria-current="true" style="border-color:var(--brand)" @endif>
-                        <div>
-                            <strong>{{ $f->name }}</strong>
-                            <div class="muted">{{ $f->type->name ?? '' }} · kapasitas {{ $f->capacity }} ·
-                                {{ implode(', ', array_filter([$f->location->gedung ?? null, $f->location->ruangan ?? null, $f->location->fakultas ?? null])) ?: 'Fasilitas universitas' }}</div>
-                        </div>
-                        <span class="btn">Pilih</span>
-                    </a>
-                @empty
-                    <p class="muted">Tidak ada fasilitas yang cocok. Coba ubah filter.</p>
-                @endforelse
+            <div class="list" id="facilityList" style="margin-top:16px">
+                {{-- Diisi via JS --}}
+                <p class="muted">Memuat fasilitas...</p>
             </div>
-            <div class="pager">
-                @if ($facilities->previousPageUrl())<a class="btn ghost" href="{{ $facilities->previousPageUrl() }}">Sebelumnya</a>@else<span></span>@endif
-                @if ($facilities->nextPageUrl())<a class="btn ghost" href="{{ $facilities->nextPageUrl() }}">Berikutnya</a>@endif
+            
+            <div class="pager" id="facilityPager" style="display:none;">
+                <button class="btn ghost" id="btnPrev">Sebelumnya</button>
+                <button class="btn ghost" id="btnNext">Berikutnya</button>
             </div>
         </div>
 
-        @if ($selected)
         {{-- ── Modal: Detail + Jadwal + Booking ── --}}
         <style>
             /* override browser default dialog for full modal look */
@@ -87,8 +73,9 @@
                 border: none;
                 border-radius: 14px;
                 padding: 0;
-                width: min(860px, 95vw);
-                max-height: 90vh;
+                width: min(1200px, 96vw);
+                max-width: none;
+                max-height: 92vh;
                 overflow-y: auto;
                 box-shadow: 0 20px 60px rgba(38,15,69,.35);
                 font-family: 'Sora', Helvetica, sans-serif;
@@ -122,7 +109,6 @@
             .modal-close:hover { color: #fff; }
             .modal-body { padding: 24px 28px; }
 
-            /* Facility detail strip */
             .facility-detail-strip {
                 display: flex;
                 gap: 24px;
@@ -149,62 +135,41 @@
         </style>
 
         <dialog id="facilityModal">
-            {{-- Header --}}
             <div class="modal-header">
-                <h2>{{ $selected->name }}</h2>
-                <a href="{{ route('pengguna.reservations.create', array_filter(array_merge($keep, ['date' => $date]))) }}"
-                   class="modal-close" title="Tutup">&times;</a>
+                <h2 id="mName">Nama Fasilitas</h2>
+                <button type="button" class="modal-close" id="btnCloseModal" title="Tutup">&times;</button>
             </div>
 
             <div class="modal-body rsv">
-                {{-- Detail strip --}}
                 <div class="facility-detail-strip">
                     <div class="fds-item">
                         <div class="fds-label">Tipe</div>
-                        <div class="fds-value">{{ $selected->type->name ?? '—' }}</div>
+                        <div class="fds-value" id="mType">—</div>
                     </div>
                     <div class="fds-item">
                         <div class="fds-label">Kapasitas</div>
-                        <div class="fds-value">{{ $selected->capacity }} orang</div>
+                        <div class="fds-value" id="mCapacity">—</div>
                     </div>
                     <div class="fds-item">
                         <div class="fds-label">Lokasi</div>
-                        <div class="fds-value">
-                            @php
-                                $loc = $selected->location;
-                                $locParts = array_filter([
-                                    $loc->ruangan ?? null,
-                                    $loc->gedung   ?? null,
-                                    $loc->fakultas ?? null,
-                                ]);
-                                echo implode(', ', $locParts) ?: 'Universitas';
-                            @endphp
-                        </div>
+                        <div class="fds-value" id="mLocation">—</div>
                     </div>
-                    @if ($selected->description)
-                    <div class="fds-item" style="flex: 2 1 240px;">
+                    <div class="fds-item" style="flex: 2 1 240px;" id="mDescWrap">
                         <div class="fds-label">Deskripsi</div>
-                        <div class="fds-value" style="font-weight:400; font-size:14px;">{{ $selected->description }}</div>
+                        <div class="fds-value" id="mDesc" style="font-weight:400; font-size:14px;">—</div>
                     </div>
-                    @endif
                 </div>
 
-                {{-- Pilih tanggal --}}
-                <form method="GET" action="{{ route('pengguna.reservations.create') }}" style="margin-bottom:16px">
-                    @foreach ($keep as $k => $v)<input type="hidden" name="{{ $k }}" value="{{ $v }}">@endforeach
-                    <input type="hidden" name="facility" value="{{ $selected->id }}">
+                {{-- Date Selector --}}
+                <div style="margin-bottom:16px">
                     <label for="date">Tanggal</label>
                     <div class="row" style="align-items:flex-end">
                         <div>
-                            <input id="date" name="date" type="date"
-                                   value="{{ $date }}" min="{{ $minDate }}" max="{{ $maxDate }}"
-                                   onchange="this.form.submit()">
+                            <input id="date" type="date" value="" min="{{ $minDate }}" max="{{ $maxDate }}">
                         </div>
-                        <noscript><button class="btn ghost" type="submit">Lihat jadwal</button></noscript>
                     </div>
-                </form>
+                </div>
 
-                {{-- Legenda + slot board --}}
                 <div class="legend" style="margin-bottom:10px">
                     <span><i style="background:var(--free)"></i>Tersedia</span>
                     <span><i style="background:var(--wait)"></i>Menunggu konfirmasi</span>
@@ -212,52 +177,33 @@
                     <span><i style="background:var(--past)"></i>Sudah lewat</span>
                 </div>
                 <div class="board" id="board">
-                    @foreach ($board as $b)
-                        <button type="button" class="slot {{ $b['state'] }}"
-                                data-start="{{ $b['start'] }}" data-end="{{ $b['end'] }}"
-                                @disabled($b['state'] !== 'free')>
-                            {{ $label($b['start']) }}–{{ $label($b['end']) }}
-                            @if ($b['state'] !== 'free')<br><small>{{ ['pending'=>'menunggu','approved'=>'terisi','past'=>'lewat'][$b['state']] }}</small>@endif
-                        </button>
-                    @endforeach
+                    <p class="muted">Memuat jadwal...</p>
                 </div>
                 <p class="muted" style="margin: 8px 0 20px">Klik slot awal, lalu slot akhir — atau pilih dari dropdown di bawah.</p>
 
-                {{-- Form booking --}}
+                {{-- Booking Form --}}
                 <form method="POST" action="{{ route('pengguna.reservations.store') }}" id="rsvForm" novalidate>
                     @csrf
-                    <input type="hidden" name="facility_id" value="{{ $selected->id }}">
-                    <input type="hidden" name="reservation_date" value="{{ $date }}">
+                    <input type="hidden" name="facility_id" id="fFacilityId" value="">
+                    <input type="hidden" name="reservation_date" id="fDate" value="">
 
                     <div class="row">
                         <div>
                             <label for="start_time">Jam mulai</label>
                             <select id="start_time" name="start_time" required>
                                 <option value="">Pilih</option>
-                                @foreach ($board as $b)
-                                    @if ($b['state'] === 'free')
-                                        <option value="{{ $b['start'] }}" @selected(old('start_time') === $b['start'])>{{ $label($b['start']) }}</option>
-                                    @endif
-                                @endforeach
                             </select>
-                            @error('start_time')<div class="err">{{ $message }}</div>@enderror
                         </div>
                         <div>
                             <label for="end_time">Jam selesai</label>
                             <select id="end_time" name="end_time" required>
                                 <option value="">Pilih</option>
-                                @foreach ($board as $b)
-                                    <option value="{{ $b['end'] }}" @selected(old('end_time') === $b['end'])>{{ $label($b['end']) }}</option>
-                                @endforeach
                             </select>
-                            @error('end_time')<div class="err">{{ $message }}</div>@enderror
                         </div>
                     </div>
-                    @error('reservation_date')<div class="err">{{ $message }}</div>@enderror
 
                     <label for="purpose">Tujuan penggunaan</label>
-                    <textarea id="purpose" name="purpose" rows="3" maxlength="1000" required>{{ old('purpose') }}</textarea>
-                    @error('purpose')<div class="err">{{ $message }}</div>@enderror
+                    <textarea id="purpose" name="purpose" rows="3" maxlength="1000" required></textarea>
 
                     <div class="err" id="clientErr" role="alert" hidden></div>
                     <p style="margin-top:16px">
@@ -267,7 +213,6 @@
             </div>
         </dialog>
 
-        {{-- Konfirmasi submit --}}
         <dialog id="confirmDialog">
             <h2>Kirim pengajuan ini?</h2>
             <p id="confirmText" class="muted"></p>
@@ -276,75 +221,238 @@
                 <button type="button" class="btn primary" id="confirmYes">Ya, ajukan</button>
             </div>
         </dialog>
-
-        <script>
-            (function () {
-                // Auto-buka modal karena fasilitas sudah dipilih
-                document.getElementById('facilityModal').showModal();
-
-                var board = @json($board);
-                var form  = document.getElementById('rsvForm');
-                var s = form.elements.start_time, e = form.elements.end_time, p = form.elements.purpose;
-                var err   = document.getElementById('clientErr');
-                var dlg   = document.getElementById('confirmDialog');
-                var chips = document.querySelectorAll('#board .slot'), confirmed = false;
-                var close = @json(config('reservation.close_time'));
-                var dot   = function (t) { return t.replace(':', '.'); };
-
-                function limitFor(start) {
-                    var lim = close;
-                    board.forEach(function (b) {
-                        if (b.start >= start && b.state !== 'free' && b.start < lim) lim = b.start;
-                    });
-                    return lim;
-                }
-                function refresh() {
-                    var lim = s.value ? limitFor(s.value) : close;
-                    Array.prototype.forEach.call(e.options, function (o) {
-                        if (o.value) o.disabled = !s.value || o.value <= s.value || o.value > lim;
-                    });
-                    if (e.value && e.selectedOptions[0].disabled) e.value = '';
-                    chips.forEach(function (c) {
-                        c.classList.toggle('pick', !!(s.value && e.value && c.dataset.start >= s.value && c.dataset.end <= e.value));
-                    });
-                }
-                chips.forEach(function (c) {
-                    c.addEventListener('click', function () {
-                        if (!s.value || e.value || c.dataset.start < s.value) { s.value = c.dataset.start; e.value = ''; }
-                        else { e.value = c.dataset.end; }
-                        refresh();
-                    });
-                });
-                s.addEventListener('change', refresh);
-                e.addEventListener('change', refresh);
-                refresh();
-
-                function validate() {
-                    if (!s.value) return 'Pilih jam mulai.';
-                    if (!e.value) return 'Pilih jam selesai.';
-                    if (e.value <= s.value) return 'Jam selesai harus setelah jam mulai.';
-                    if (e.value > limitFor(s.value)) return 'Rentang waktu itu bentrok dengan slot yang sudah terisi.';
-                    if (p.value.trim().length < 5) return 'Tujuan penggunaan minimal 5 karakter.';
-                    return '';
-                }
-                form.addEventListener('submit', function (ev) {
-                    if (confirmed) return;
-                    ev.preventDefault();
-                    var msg = validate();
-                    err.hidden = !msg; err.textContent = msg;
-                    if (msg) return;
-                    document.getElementById('confirmText').textContent =
-                        @json($selected->name) + ', {{ $date }}, ' + dot(s.value) + '–' + dot(e.value) + '.';
-                    dlg.showModal();
-                });
-                document.getElementById('confirmNo').addEventListener('click', function () { dlg.close(); });
-                document.getElementById('confirmYes').addEventListener('click', function () {
-                    confirmed = true; this.disabled = true; dlg.close();
-                    document.getElementById('submitBtn').disabled = true;
-                    form.requestSubmit();
-                });
-            })();
-        </script>
-        @endif
     </div>
+
+    <script>
+    (function() {
+        let currentUrl = '{{ route("pengguna.reservations.facilities-json") }}';
+        let currentFacilityId = null;
+        let currentBoardData = [];
+        let closeTimeStr = "20:00:00"; // default, di-overwrite saat fetch board
+        
+        const fList = document.getElementById('facilityList');
+        const fPager = document.getElementById('facilityPager');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnNext = document.getElementById('btnNext');
+        
+        // Modal elements
+        const modal = document.getElementById('facilityModal');
+        const board = document.getElementById('board');
+        const dateInput = document.getElementById('date');
+        const fDateInput = document.getElementById('fDate');
+        const s = document.getElementById('start_time');
+        const e = document.getElementById('end_time');
+        const p = document.getElementById('purpose');
+        
+        function formatLabel(timeStr) {
+            return timeStr.substring(0, 5).replace(':', '.');
+        }
+
+        window.loadFacilities = function(url) {
+            url = url || currentUrl;
+            let form = document.getElementById('filterForm');
+            let formData = new FormData(form);
+            let params = new URLSearchParams();
+            for(let [k,v] of formData.entries()) {
+                if(v) params.append(k,v);
+            }
+            
+            let fetchUrl = url;
+            if(!url.includes('?')) {
+                fetchUrl += '?' + params.toString();
+            } else if (url === currentUrl) {
+                fetchUrl = url.split('?')[0] + '?' + params.toString();
+            }
+
+            fetch(fetchUrl)
+                .then(r => r.json())
+                .then(res => {
+                    currentUrl = fetchUrl; // save current search URL for pagination base if needed
+                    fList.innerHTML = '';
+                    if(res.data.length === 0) {
+                        fList.innerHTML = '<p class="muted">Tidak ada fasilitas yang cocok. Coba ubah filter.</p>';
+                        fPager.style.display = 'none';
+                        return;
+                    }
+                    
+                    res.data.forEach(f => {
+                        let a = document.createElement('a');
+                        a.className = 'card item';
+                        a.href = '#';
+                        a.onclick = function(ev) {
+                            ev.preventDefault();
+                            openModal(f.id, dateInput.value || '{{ $minDate }}');
+                        };
+                        a.innerHTML = `
+                            <div>
+                                <strong>${f.name}</strong>
+                                <div class="muted">${f.type} · kapasitas ${f.capacity} · ${f.location}</div>
+                            </div>
+                            <span class="btn">Pilih</span>
+                        `;
+                        fList.appendChild(a);
+                    });
+                    
+                    fPager.style.display = 'flex';
+                    btnPrev.disabled = !res.prev_page_url;
+                    btnPrev.onclick = () => loadFacilities(res.prev_page_url);
+                    btnNext.disabled = !res.next_page_url;
+                    btnNext.onclick = () => loadFacilities(res.next_page_url);
+                });
+        };
+
+        // Form auto-submit on change
+        document.querySelectorAll('#filterForm input, #filterForm select').forEach(el => {
+            el.addEventListener('change', () => loadFacilities('{{ route("pengguna.reservations.facilities-json") }}'));
+        });
+
+        function openModal(id, dateVal) {
+            currentFacilityId = id;
+            dateInput.value = dateVal;
+            fDateInput.value = dateVal;
+            document.getElementById('fFacilityId').value = id;
+            
+            // clear board & form
+            board.innerHTML = '<p class="muted">Memuat jadwal...</p>';
+            s.innerHTML = '<option value="">Pilih</option>';
+            e.innerHTML = '<option value="">Pilih</option>';
+            p.value = '';
+            
+            modal.showModal();
+            loadBoard();
+        }
+        
+        document.getElementById('btnCloseModal').addEventListener('click', () => modal.close());
+        
+        dateInput.addEventListener('change', function() {
+            fDateInput.value = this.value;
+            loadBoard();
+        });
+
+        function loadBoard() {
+            fetch(`{{ route('pengguna.reservations.slot-board-json') }}?facility=${currentFacilityId}&date=${dateInput.value}`)
+                .then(r => r.json())
+                .then(res => {
+                    // Update header
+                    document.getElementById('mName').textContent = res.facility.name;
+                    document.getElementById('mType').textContent = res.facility.type || '—';
+                    document.getElementById('mCapacity').textContent = res.facility.capacity + ' orang';
+                    document.getElementById('mLocation').textContent = res.facility.location || '—';
+                    
+                    if(res.facility.description) {
+                        document.getElementById('mDescWrap').style.display = 'block';
+                        document.getElementById('mDesc').textContent = res.facility.description;
+                    } else {
+                        document.getElementById('mDescWrap').style.display = 'none';
+                    }
+                    
+                    closeTimeStr = res.closeTime;
+                    currentBoardData = res.board;
+                    
+                    renderBoard();
+                });
+        }
+        
+        function limitFor(start) {
+            let lim = closeTimeStr;
+            currentBoardData.forEach(b => {
+                if (b.start >= start && b.state !== 'free' && b.start < lim) lim = b.start;
+            });
+            return lim;
+        }
+
+        function refreshFormDropdowns() {
+            let lim = s.value ? limitFor(s.value) : closeTimeStr;
+            Array.from(e.options).forEach(o => {
+                if (o.value) o.disabled = !s.value || o.value <= s.value || o.value > lim;
+            });
+            if (e.value && e.selectedOptions[0].disabled) e.value = '';
+            
+            document.querySelectorAll('#board .slot').forEach(c => {
+                c.classList.toggle('pick', !!(s.value && e.value && c.dataset.start >= s.value && c.dataset.end <= e.value));
+            });
+        }
+
+        function renderBoard() {
+            board.innerHTML = '';
+            s.innerHTML = '<option value="">Pilih</option>';
+            e.innerHTML = '<option value="">Pilih</option>';
+            
+            currentBoardData.forEach(b => {
+                let btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `slot ${b.state}`;
+                btn.dataset.start = b.start;
+                btn.dataset.end = b.end;
+                btn.disabled = b.state !== 'free';
+                
+                let stateLabel = '';
+                if(b.state === 'pending') stateLabel = '<br><small>menunggu</small>';
+                if(b.state === 'approved') stateLabel = '<br><small>terisi</small>';
+                if(b.state === 'past') stateLabel = '<br><small>lewat</small>';
+                
+                btn.innerHTML = `${formatLabel(b.start)}–${formatLabel(b.end)}${stateLabel}`;
+                
+                btn.addEventListener('click', () => {
+                    if (!s.value || e.value || btn.dataset.start < s.value) { s.value = btn.dataset.start; e.value = ''; }
+                    else { e.value = btn.dataset.end; }
+                    refreshFormDropdowns();
+                });
+                
+                board.appendChild(btn);
+                
+                if(b.state === 'free') {
+                    let optS = document.createElement('option');
+                    optS.value = b.start; optS.textContent = formatLabel(b.start);
+                    s.appendChild(optS);
+                }
+                let optE = document.createElement('option');
+                optE.value = b.end; optE.textContent = formatLabel(b.end);
+                e.appendChild(optE);
+            });
+            
+            s.removeEventListener('change', refreshFormDropdowns);
+            e.removeEventListener('change', refreshFormDropdowns);
+            s.addEventListener('change', refreshFormDropdowns);
+            e.addEventListener('change', refreshFormDropdowns);
+        }
+
+        // Form Submission
+        let form = document.getElementById('rsvForm');
+        let err = document.getElementById('clientErr');
+        let dlg = document.getElementById('confirmDialog');
+        let confirmed = false;
+        
+        function validate() {
+            if (!s.value) return 'Pilih jam mulai.';
+            if (!e.value) return 'Pilih jam selesai.';
+            if (e.value <= s.value) return 'Jam selesai harus setelah jam mulai.';
+            if (e.value > limitFor(s.value)) return 'Rentang waktu itu bentrok dengan slot yang sudah terisi.';
+            if (p.value.trim().length < 5) return 'Tujuan penggunaan minimal 5 karakter.';
+            return '';
+        }
+        
+        form.addEventListener('submit', function (ev) {
+            if (confirmed) return;
+            ev.preventDefault();
+            let msg = validate();
+            err.hidden = !msg; err.textContent = msg;
+            if (msg) return;
+            
+            document.getElementById('confirmText').textContent =
+                document.getElementById('mName').textContent + ', ' + dateInput.value + ', ' + formatLabel(s.value) + '–' + formatLabel(e.value) + '.';
+            dlg.showModal();
+        });
+        
+        document.getElementById('confirmNo').addEventListener('click', () => dlg.close());
+        document.getElementById('confirmYes').addEventListener('click', function () {
+            confirmed = true; this.disabled = true; dlg.close();
+            document.getElementById('submitBtn').disabled = true;
+            form.requestSubmit();
+        });
+
+        // initial load
+        loadFacilities();
+    })();
+    </script>
 @endsection

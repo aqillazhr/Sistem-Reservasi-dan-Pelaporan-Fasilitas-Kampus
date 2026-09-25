@@ -233,6 +233,17 @@
                         Pilih Fakultas
                     </option>
 
+                    <option
+                        value="__UNIVERSITAS__"
+                        {{
+                            ($report->facility->location->scope_level ?? '') === 'universitas'
+                                ? 'selected'
+                                : ''
+                        }}
+                    >
+                        Non-Fakultas
+                    </option>
+
                     @foreach (
                         $facilities
                             ->pluck('location.fakultas')
@@ -244,7 +255,11 @@
 
                         <option
                             value="{{ $faculty }}"
-                            {{ ($report->facility->location->fakultas ?? '') === $faculty ? 'selected' : '' }}
+                            {{
+                                ($report->facility->location->fakultas ?? '') === $faculty
+                                    ? 'selected'
+                                    : ''
+                            }}
                         >
                             {{ $faculty }}
                         </option>
@@ -514,7 +529,9 @@
             'id' => $facility->id,
             'name' => $facility->name,
             'faculty' => $facility->location->fakultas ?? '',
+            'scope_level' => $facility->location->scope_level ?? '',
             'type' => $facility->type->name ?? '',
+            'type_id' => $facility->type_id,
         ];
     })->values();
 @endphp
@@ -528,7 +545,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const facilities = @json($facilityData);
 
     const currentFaculty = @json(
-        $report->facility->location->fakultas ?? ''
+        ($report->facility->location->scope_level ?? '') === 'universitas'
+            ? '__UNIVERSITAS__'
+            : ($report->facility->location->fakultas ?? '')
     );
 
     const currentType = @json(
@@ -540,7 +559,10 @@ document.addEventListener('DOMContentLoaded', function () {
     );
 
 
-    function populateTypes(selectedFaculty, selectedType = '') {
+    function populateTypes(
+        selectedFaculty,
+        selectedType = ''
+    ) {
 
         typeSelect.innerHTML = `
             <option value="">
@@ -548,45 +570,77 @@ document.addEventListener('DOMContentLoaded', function () {
             </option>
         `;
 
+
+        facilitySelect.innerHTML = `
+            <option value="">
+                Pilih fasilitas
+            </option>
+        `;
+
+
         if (!selectedFaculty) {
+
             typeSelect.disabled = true;
-            facilitySelect.innerHTML = `
-                <option value="">
-                    Pilih fasilitas
-                </option>
-            `;
             facilitySelect.disabled = true;
+
             return;
+
         }
+
+
+        const filteredFacilities =
+            facilities.filter(facility => {
+
+                if (selectedFaculty === '__UNIVERSITAS__') {
+
+                    return (
+                        facility.scope_level ===
+                        'universitas'
+                    );
+
+                }
+
+
+                return (
+                    facility.scope_level ===
+                        'fakultas' &&
+                    facility.faculty ===
+                        selectedFaculty
+                );
+
+            });
+
 
         const types = [
             ...new Set(
-                facilities
-                    .filter(facility =>
-                        facility.faculty === selectedFaculty
-                    )
-                    .map(facility =>
-                        facility.type
-                    )
+                filteredFacilities
+                    .map(facility => facility.type)
                     .filter(type => type)
             )
         ];
 
+
         types.forEach(type => {
 
-            const option = document.createElement('option');
+            const option =
+                document.createElement('option');
 
             option.value = type;
             option.textContent = type;
+
 
             if (type === selectedType) {
                 option.selected = true;
             }
 
+
             typeSelect.appendChild(option);
+
         });
 
+
         typeSelect.disabled = false;
+
     }
 
 
@@ -602,34 +656,77 @@ document.addEventListener('DOMContentLoaded', function () {
             </option>
         `;
 
+
         if (!selectedFaculty || !selectedType) {
             facilitySelect.disabled = true;
             return;
         }
 
-        const filteredFacilities = facilities.filter(facility =>
-            facility.faculty === selectedFaculty &&
-            facility.type === selectedType
-        );
+
+        const filteredFacilities =
+            facilities.filter(facility => {
+
+                const sameType =
+                    facility.type === selectedType;
+
+
+                if (!sameType) {
+                    return false;
+                }
+
+
+                if (
+                    selectedFaculty ===
+                    '__UNIVERSITAS__'
+                ) {
+
+                    return (
+                        facility.scope_level ===
+                        'universitas'
+                    );
+
+                }
+
+
+                return (
+                    facility.scope_level ===
+                        'fakultas' &&
+                    facility.faculty ===
+                        selectedFaculty
+                );
+
+            });
+
 
         filteredFacilities.forEach(facility => {
 
-            const option = document.createElement('option');
+            const option =
+                document.createElement('option');
 
-            option.value = facility.id;
-            option.textContent = facility.name;
+            option.value =
+                facility.id;
+
+            option.textContent =
+                facility.name;
+
 
             if (
                 String(facility.id) ===
                 String(selectedFacilityId)
             ) {
+
                 option.selected = true;
+
             }
 
+
             facilitySelect.appendChild(option);
+
         });
 
+
         facilitySelect.disabled = false;
+
     }
 
 

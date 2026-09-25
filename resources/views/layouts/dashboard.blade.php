@@ -184,6 +184,27 @@
         }
         .navbar .dd-divider { border: none; border-top: 1px solid #ede5fb; margin: 4px 0; }
 
+        /* Guest links (Pengunjung, belum login) */
+        .navbar .guest-links {
+            margin-left: 28px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-shrink: 0;
+        }
+        .navbar .guest-links a {
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-weight: 600;
+            font-size: 16px;
+            color: #ffffff;
+            white-space: nowrap;
+        }
+        .navbar .guest-links a.btn-daftar {
+            background: #bd93f8;
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
         /* ── Content area ── */
         .page-content {
             padding: 32px 44px;
@@ -213,51 +234,64 @@
             <span class="brand-name">SI Reservasi</span>
         </div>
 
-        {{-- Nav links --}}
-        <div class="nav-links">
+        {{-- Nav links: HANYA muncul kalau ada yang login. Pengunjung (belum
+             login) nggak dapat menu role sama sekali, karena auth()->user()
+             pasti null buat mereka. --}}
+        @auth
             @php $role = auth()->user()->role; @endphp
 
-            @if ($role === 'admin')
-                <a href="{{ route('admin.dashboard') }}" @class(['active' => request()->routeIs('admin.dashboard')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    Dashboard
-                </a>
+            <div class="nav-links">
+                @if ($role === 'admin')
+                    <a href="{{ route('admin.dashboard') }}" @class(['active' => request()->routeIs('admin.dashboard')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Dashboard
+                    </a>
+                    <a href="{{ route('facilities.index') }}" @class(['active' => request()->routeIs('facilities.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                        Fasilitas
+                    </a>
+                    <a href="{{ route('admin.accounts.index') }}" @class(['active' => request()->routeIs('admin.accounts.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Pengguna
+                    </a>
+                @elseif ($role === 'petugas')
+                    <a href="{{ route('petugas.dashboard') }}" @class(['active' => request()->routeIs('petugas.dashboard')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Dashboard
+                    </a>
+                    <a href="#" @class(['active' => request()->routeIs('petugas.reservations.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Reservasi
+                    </a>
+                    <a href="#" @class(['active' => request()->routeIs('petugas.reports.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        Laporan
+                    </a>
+                @else
+                    <a href="{{ route('pengguna.dashboard') }}" @class(['active' => request()->routeIs('pengguna.dashboard')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        Dashboard
+                    </a>
+                    <a href="{{ route('pengguna.reservations.index') }}" @class(['active' => request()->routeIs('pengguna.reservations.*') || request()->routeIs('pengguna.reports.index')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                        Riwayat
+                    </a>
+                    <a href="{{ route('pengguna.reports.create') }}" @class(['active' => request()->routeIs('pengguna.reports.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        Lapor Kerusakan
+                    </a>
+                @endif
+            </div>
+        @else
+            {{-- Pengunjung tetap lihat menu Fasilitas (boleh diakses tanpa
+                 login, sesuai User Story 1-2), cuma nggak dapat menu lain. --}}
+            <div class="nav-links">
                 <a href="{{ route('facilities.index') }}" @class(['active' => request()->routeIs('facilities.*')])>
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
                     Fasilitas
                 </a>
-                <a href="{{ route('admin.accounts.index') }}" @class(['active' => request()->routeIs('admin.accounts.*')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                    Pengguna
-                </a>
-            @elseif ($role === 'petugas')
-                <a href="{{ route('petugas.dashboard') }}" @class(['active' => request()->routeIs('petugas.dashboard')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    Dashboard
-                </a>
-                <a href="#" @class(['active' => request()->routeIs('petugas.reservations.*')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    Reservasi
-                </a>
-                <a href="#" @class(['active' => request()->routeIs('petugas.reports.*')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    Laporan
-                </a>
-            @else
-                <a href="{{ route('pengguna.dashboard') }}" @class(['active' => request()->routeIs('pengguna.dashboard')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    Dashboard
-                </a>
-                <a href="{{ route('pengguna.reservations.index') }}" @class(['active' => request()->routeIs('pengguna.reservations.*') || request()->routeIs('pengguna.reports.index')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    Riwayat
-                </a>
-                <a href="{{ route('pengguna.reports.create') }}" @class(['active' => request()->routeIs('pengguna.reports.*')])>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    Lapor Kerusakan
-                </a>
-            @endif
-        </div>
+            </div>
+        @endauth
 
         {{-- Search --}}
         <div class="search-wrap">
@@ -268,41 +302,48 @@
                    onkeydown="if(event.key==='Enter'){ window.location='{{ route('facilities.index') }}?search='+encodeURIComponent(this.value); }">
         </div>
 
-        {{-- Avatar + dropdown --}}
-        @php
-            $initials = collect(explode(' ', auth()->user()->name))
-                ->take(2)->map(fn($w) => strtoupper($w[0] ?? ''))->implode('');
-        @endphp
-        <div class="avatar-wrap">
-            <button class="avatar" id="avatarBtn" title="{{ auth()->user()->name }}" aria-haspopup="true" aria-expanded="false">
-                {{ $initials }}
-            </button>
-            <div class="avatar-dropdown" id="avatarDropdown" role="menu">
-                <div class="avatar-name">{{ auth()->user()->name }}</div>
-                <hr class="dd-divider">
-                <a href="{{ route('profile.show') }}" role="menuitem">Profil</a>
-                <hr class="dd-divider">
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="dd-logout" role="menuitem">Logout</button>
-                </form>
+        {{-- Avatar + dropdown kalau login, tombol Login/Daftar kalau belum --}}
+        @auth
+            @php
+                $initials = collect(explode(' ', auth()->user()->name))
+                    ->take(2)->map(fn($w) => strtoupper($w[0] ?? ''))->implode('');
+            @endphp
+            <div class="avatar-wrap">
+                <button class="avatar" id="avatarBtn" title="{{ auth()->user()->name }}" aria-haspopup="true" aria-expanded="false">
+                    {{ $initials }}
+                </button>
+                <div class="avatar-dropdown" id="avatarDropdown" role="menu">
+                    <div class="avatar-name">{{ auth()->user()->name }}</div>
+                    <hr class="dd-divider">
+                    <a href="{{ route('profile.show') }}" role="menuitem">Profil</a>
+                    <hr class="dd-divider">
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit" class="dd-logout" role="menuitem">Logout</button>
+                    </form>
+                </div>
             </div>
-        </div>
-        <script>
-            (function () {
-                var btn = document.getElementById('avatarBtn');
-                var dd  = document.getElementById('avatarDropdown');
-                btn.addEventListener('click', function (e) {
-                    e.stopPropagation();
-                    var open = dd.classList.toggle('open');
-                    btn.setAttribute('aria-expanded', open);
-                });
-                document.addEventListener('click', function () {
-                    dd.classList.remove('open');
-                    btn.setAttribute('aria-expanded', 'false');
-                });
-            })();
-        </script>
+            <script>
+                (function () {
+                    var btn = document.getElementById('avatarBtn');
+                    var dd  = document.getElementById('avatarDropdown');
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        var open = dd.classList.toggle('open');
+                        btn.setAttribute('aria-expanded', open);
+                    });
+                    document.addEventListener('click', function () {
+                        dd.classList.remove('open');
+                        btn.setAttribute('aria-expanded', 'false');
+                    });
+                })();
+            </script>
+        @else
+            <div class="guest-links">
+                <a href="{{ route('login') }}">Login</a>
+                <a href="{{ route('register') }}" class="btn-daftar">Daftar</a>
+            </div>
+        @endauth
     </nav>
 
     <div class="page-content">

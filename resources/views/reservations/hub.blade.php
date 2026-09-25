@@ -16,8 +16,11 @@
             <a class="card" href="{{ route('pengguna.reservations.index') }}">
                 <h2>Reservasi saya</h2>
                 <p class="muted">
-                    {{ $counts['pending'] ?? 0 }} menunggu · {{ $counts['approved'] ?? 0 }} aktif ·
-                    {{ $counts['rejected'] ?? 0 }} ditolak · {{ $counts['cancelled'] ?? 0 }} dibatalkan
+                    {{ $counts['pending'] ?? 0 }} menunggu ·
+                    {{ $counts['aktif'] ?? 0 }} aktif ·
+                    {{ $counts['selesai'] ?? 0 }} selesai ·
+                    {{ $counts['rejected'] ?? 0 }} ditolak ·
+                    {{ $counts['cancelled'] ?? 0 }} dibatalkan
                 </p>
             </a>
         </div>

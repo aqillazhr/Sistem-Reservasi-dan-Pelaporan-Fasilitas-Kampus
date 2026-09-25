@@ -15,7 +15,7 @@
         <div class="card">
             <dl>
                 <dt>Status</dt>
-                <dd><span class="badge {{ $reservation->status }}">{{ $reservation->status_label }}</span></dd>
+                <dd><span class="badge {{ $reservation->isFinished() ? 'selesai' : $reservation->status }}">{{ $reservation->status_label }}</span></dd>
                 <dt>Fasilitas</dt>
                 <dd>{{ $reservation->facility->name }}</dd>
                 <dt>Tanggal</dt>
