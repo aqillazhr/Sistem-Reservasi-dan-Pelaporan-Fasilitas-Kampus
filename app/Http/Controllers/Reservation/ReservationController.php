@@ -73,105 +73,99 @@ class ReservationController extends Controller
         return view('reservations.hub', compact('counts'));
     }
 
-    // "Halaman Reservasi Saya": Menunggu, Aktif, Selesai, Ditolak, Dibatalkan
+    // "Halaman Reservasi Saya" — semua dimuat sekaligus, tab filter di client-side
     public function history(Request $request)
     {
-        $tab = $request->query('status');
-        $now = now();
-
-        $query = $request->user()->reservations()->with('facility.location');
-
-        $query = match ($tab) {
-            'menunggu'   => $query->where('status', 'pending'),
-            'aktif'      => $query->where('status', 'approved')
-                                  ->where(fn ($q) => $q
-                                      ->whereDate('reservation_date', '>', $now->toDateString())
-                                      ->orWhere(fn ($q2) => $q2
-                                          ->whereDate('reservation_date', $now->toDateString())
-                                          ->where('end_time', '>', $now->format('H:i:s'))
-                                      )
-                                  ),
-            'selesai'    => $query->where('status', 'approved')
-                                  ->where(fn ($q) => $q
-                                      ->whereDate('reservation_date', '<', $now->toDateString())
-                                      ->orWhere(fn ($q2) => $q2
-                                          ->whereDate('reservation_date', $now->toDateString())
-                                          ->where('end_time', '<=', $now->format('H:i:s'))
-                                      )
-                                  ),
-            'ditolak'    => $query->where('status', 'rejected'),
-            'dibatalkan' => $query->where('status', 'cancelled'),
-            default      => $query, // semua
-        };
-
-        $validTabs = ['menunggu', 'aktif', 'selesai', 'ditolak', 'dibatalkan'];
-        $tabLabels = [
-            'menunggu'   => 'Menunggu',
-            'aktif'      => 'Aktif',
-            'selesai'    => 'Selesai',
-            'ditolak'    => 'Ditolak',
-            'dibatalkan' => 'Dibatalkan',
-        ];
-
-        $reservations = $query
+        $reservations = $request->user()->reservations()
+            ->with('facility.location')
             ->orderByDesc('reservation_date')
             ->orderByDesc('start_time')
-            ->paginate(10)
+            ->paginate(50)
             ->withQueryString();
 
         return view('reservations.index', [
             'reservations' => $reservations,
-            'tab'          => in_array($tab, $validTabs, true) ? $tab : null,
-            'tabs'         => $validTabs,
-            'tabLabels'    => $tabLabels,
         ]);
     }
 
-    // Ajukan Reservasi: cari/filter fasilitas -> pilih tanggal -> pilih slot -> tujuan
-    public function create(Request $request)
+    // JSON endpoint: daftar fasilitas untuk filter client-side
+    public function facilitiesJson(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'q'           => ['nullable', 'string', 'max:100'],
-            'type_id'     => ['nullable', 'integer'],
-            'location_id' => ['nullable', 'integer'],
-            'min_capacity' => ['nullable', 'integer', 'min:1', 'max:100000'],
-            'facility'    => ['nullable', 'integer'],
-            'date'        => ['nullable', 'date_format:Y-m-d'],
+            'q'            => ['nullable', 'string', 'max:100'],
+            'type_id'      => ['nullable', 'integer'],
+            'location_id'  => ['nullable', 'integer'],
+            'min_capacity' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $facilities = Facility::query()
             ->where('status', 'aktif')
             ->with(['type', 'location'])
-            ->when($filters['q'] ?? null, fn ($q, $v) => $q->where('name', 'like', '%'.addcslashes($v, '%_\\').'%'))
-            ->when($filters['type_id'] ?? null, fn ($q, $v) => $q->where('type_id', $v))
-            ->when($filters['location_id'] ?? null, fn ($q, $v) => $q->where('location_id', $v))
+            ->when($filters['q'] ?? null,            fn ($q, $v) => $q->where('name', 'like', '%'.addcslashes($v, '%_\\').'%'))
+            ->when($filters['type_id'] ?? null,      fn ($q, $v) => $q->where('type_id', $v))
+            ->when($filters['location_id'] ?? null,  fn ($q, $v) => $q->where('location_id', $v))
             ->when($filters['min_capacity'] ?? null, fn ($q, $v) => $q->where('capacity', '>=', $v))
             ->orderBy('name')
-            ->paginate(8)
-            ->withQueryString();
+            ->paginate(8);
 
-        $selected = isset($filters['facility'])
-            ? Facility::where('status', 'aktif')->with(['type', 'location'])->find($filters['facility'])
-            : null;
+        return response()->json([
+            'data' => $facilities->map(fn ($f) => [
+                'id'       => $f->id,
+                'name'     => $f->name,
+                'type'     => $f->type->name ?? '',
+                'capacity' => $f->capacity,
+                'location' => collect([$f->location->ruangan, $f->location->gedung, $f->location->fakultas])
+                                ->filter()->implode(', ') ?: 'Universitas',
+            ]),
+            'next_page_url'     => $facilities->nextPageUrl(),
+            'prev_page_url'     => $facilities->previousPageUrl(),
+        ]);
+    }
 
-        // Tanggal dijepit ke rentang yang boleh dipesan (hari ini s/d hari ini + N hari)
-        $today = now()->startOfDay();
+    // JSON endpoint: slot board untuk fasilitas+tanggal tertentu
+    public function slotBoardJson(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'facility' => ['required', 'integer'],
+            'date'     => ['nullable', 'date_format:Y-m-d'],
+        ]);
+
+        $facility = Facility::where('status', 'aktif')->with(['type', 'location'])->findOrFail($data['facility']);
+
+        $today   = now()->startOfDay();
         $maxDate = $today->copy()->addDays((int) config('reservation.max_days_ahead'));
-        $date = Carbon::parse($filters['date'] ?? $today->toDateString(), config('app.timezone'))->startOfDay();
-        $date = $date->lt($today) ? $today : ($date->gt($maxDate) ? $maxDate : $date);
+        $date    = Carbon::parse($data['date'] ?? $today->toDateString(), config('app.timezone'))->startOfDay();
+        $date    = $date->lt($today) ? $today : ($date->gt($maxDate) ? $maxDate : $date);
 
-        $board = $selected ? $this->service->slotBoard($selected->id, $date->toDateString()) : [];
+        $board = $this->service->slotBoard($facility->id, $date->toDateString());
 
+        return response()->json([
+            'facility' => [
+                'id'       => $facility->id,
+                'name'     => $facility->name,
+                'type'     => $facility->type->name ?? '',
+                'capacity' => $facility->capacity,
+                'location' => collect([$facility->location->ruangan, $facility->location->gedung, $facility->location->fakultas])
+                                ->filter()->implode(', ') ?: 'Universitas',
+                'description' => $facility->description,
+            ],
+            'date'     => $date->toDateString(),
+            'minDate'  => $today->toDateString(),
+            'maxDate'  => $maxDate->toDateString(),
+            'board'    => $board,
+            'closeTime' => config('reservation.close_time'),
+        ]);
+    }
+
+
+    public function create(Request $request)
+    {
         return view('reservations.create', [
-            'facilities'  => $facilities,
             'types'       => FacilityType::orderBy('name')->get(),
             'locations'   => \App\Models\Location::orderBy('scope_level')->orderBy('fakultas')->get(),
-            'selected'    => $selected,
-            'board'       => $board,
-            'date'        => $date->toDateString(),
-            'minDate'     => $today->toDateString(),
-            'maxDate'     => $maxDate->toDateString(),
-            'filters'     => $filters,
+            // Tanggal min/max untuk validasi JS
+            'minDate'     => now()->startOfDay()->toDateString(),
+            'maxDate'     => now()->startOfDay()->addDays((int) config('reservation.max_days_ahead'))->toDateString(),
         ]);
     }
 

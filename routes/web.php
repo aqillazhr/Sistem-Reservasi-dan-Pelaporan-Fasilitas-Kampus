@@ -67,6 +67,8 @@ Route::middleware(['auth', 'role:pengguna'])->prefix('app')->name('pengguna.')->
     Route::get('/reservasi', [ReservationController::class, 'hub'])->name('reservations.hub');
     Route::get('/reservasi/saya', [ReservationController::class, 'history'])->name('reservations.index');
     Route::get('/reservasi/create', [ReservationController::class, 'create'])->name('reservations.create');
+    Route::get('/reservasi/fasilitas.json', [ReservationController::class, 'facilitiesJson'])->name('reservations.facilities-json');
+    Route::get('/reservasi/slot-board.json', [ReservationController::class, 'slotBoardJson'])->name('reservations.slot-board-json');
     Route::post('/reservasi', [ReservationController::class, 'store'])
         ->middleware('throttle:10,1')
         ->name('reservations.store');
