@@ -26,34 +26,106 @@ class FacilityController extends Controller
 {
     public function index(Request $request)
     {
-        $search = trim($request->search ?? '');
+        $search = trim($request->query('search', ''));
 
-        // Kapasitas minimal (angka bulat 1..100000); input tidak valid diabaikan.
-        $capacity = filter_var($request->query('kapasitas'), FILTER_VALIDATE_INT, [
-            'options' => ['min_range' => 1, 'max_range' => 100000],
-        ]);
+        // Kapasitas minimal dari parameter ?kapasitas=
+        $capacity = filter_var(
+            $request->query('kapasitas'),
+            FILTER_VALIDATE_INT,
+            [
+                'options' => [
+                    'min_range' => 1,
+                    'max_range' => 100000,
+                ],
+            ]
+        );
+
         $capacity = $capacity === false ? null : $capacity;
+
+        // Cek apakah search mengandung "kapasitas 100"
+        if (preg_match('/kapasitas\s+(\d+)/i', $search, $matches)) {
+            $capacityFromSearch = (int) $matches[1];
+
+            if ($capacity === null) {
+                $capacity = $capacityFromSearch;
+            }
+
+            // Hapus bagian "kapasitas 100" dari keyword
+            // supaya sisanya tetap bisa dipakai untuk pencarian teks.
+            $search = trim(
+                preg_replace('/kapasitas\s+\d+/i', '', $search)
+            );
+        }
 
         $facilities = collect();
 
         if ($search !== '' || $capacity !== null) {
+
             $facilities = Facility::query()
+
+                // Fasilitas nonaktif tidak ditampilkan
                 ->where('status', '!=', 'nonaktif')
+
+                // SEARCH TEKS:
+                // nama fasilitas
+                // tipe
+                // fakultas
+                // prodi
+                // gedung
+                // ruangan
                 ->when($search !== '', function ($q) use ($search) {
-                    // Cara lama tetap jalan: ketik "kapasitas 100" di kolom nama
-                    if (preg_match('/kapasitas\s*(\d+)/i', $search, $matches)) {
-                        $q->where('capacity', '>=', (int) $matches[1]);
-                    } else {
-                        $q->where('name', 'like', '%'.$search.'%');
-                    }
+
+                    $q->where(function ($query) use ($search) {
+
+                        // Nama fasilitas
+                        $query->where('name', 'like', '%'.$search.'%')
+
+                            // Tipe fasilitas
+                            ->orWhereHas('type', function ($typeQuery) use ($search) {
+                                $typeQuery->where(
+                                    'name',
+                                    'like',
+                                    '%'.$search.'%'
+                                );
+                            })
+
+                            // Lokasi
+                            ->orWhereHas('location', function ($locationQuery) use ($search) {
+
+                                $locationQuery
+                                    ->where('fakultas', 'like', '%'.$search.'%')
+                                    ->orWhere('prodi', 'like', '%'.$search.'%')
+                                    ->orWhere('gedung', 'like', '%'.$search.'%')
+                                    ->orWhere('ruangan', 'like', '%'.$search.'%');
+                            });
+                    });
                 })
-                ->when($capacity !== null, fn ($q) => $q->where('capacity', '>=', $capacity))
-                ->with(['type', 'location', 'photos'])
+
+                // Kapasitas minimal
+                ->when(
+                    $capacity !== null,
+                    fn ($q) => $q->where('capacity', '>=', $capacity)
+                )
+
+                ->with([
+                    'type',
+                    'location',
+                    'photos',
+                ])
+
                 ->paginate(12)
+
                 ->withQueryString();
         }
 
-        return view('facilities.index', compact('facilities', 'search', 'capacity'));
+        return view(
+            'facilities.index',
+            compact(
+                'facilities',
+                'search',
+                'capacity'
+            )
+        );
     }
 
     public function show(Facility $facility)
@@ -136,37 +208,46 @@ class FacilityController extends Controller
         return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil diperbarui.');
     }
 
-public function byFaculty(string $faculty)
-{
-    $facilities = Facility::query()
-        ->where('status', '!=', 'nonaktif')
-        ->whereHas('location', fn ($q) => $q->where('fakultas', $faculty))
-        ->with(['type', 'location', 'photos'])
-        ->paginate(12);
+    public function byFaculty(Request $request, string $faculty)
+    {
+        $facilities = Facility::query()
+            ->where('status', '!=', 'nonaktif')
+            ->whereHas('location', function ($q) use ($faculty) {
+                $q->where('fakultas', $faculty);
+            })
+            ->when($request->type_id, function ($q) use ($request) {
+                $q->where('type_id', $request->type_id);
+            })
+            ->with(['type', 'location', 'photos'])
+            ->paginate(12)
+            ->withQueryString();
 
-    return view('facilities.by-group', [
-        'facilities' => $facilities,
-        'groupName' => $faculty,
-    ]);
-}
+        $types = FacilityType::all();
 
-public function byBuilding(string $building)
-{
-    $facilities = Facility::query()
-        ->where('status', '!=', 'nonaktif')
-        ->whereHas('location', function ($q) use ($building) {
-            $q->where('scope_level', 'universitas')
-              ->where(function ($q2) use ($building) {
-                  $q2->where('gedung', $building)
-                     ->orWhere('ruangan', $building);
-              });
-        })
-        ->with(['type', 'location', 'photos'])
-        ->paginate(12);
+        return view('facilities.by-faculty', compact(
+            'facilities',
+            'faculty',
+            'types'
+        ));
+    }
 
-    return view('facilities.by-group', [
-        'facilities' => $facilities,
-        'groupName' => $building,
-    ]);
-}
+    public function byBuilding(string $building)
+    {
+        $facilities = Facility::query()
+            ->where('status', '!=', 'nonaktif')
+            ->whereHas('location', function ($q) use ($building) {
+                $q->where('scope_level', 'universitas')
+                    ->where(function ($q2) use ($building) {
+                        $q2->where('gedung', $building)
+                            ->orWhere('ruangan', $building);
+                    });
+            })
+            ->with(['type', 'location', 'photos'])
+            ->paginate(12);
+
+        return view('facilities.by-group', [
+            'facilities' => $facilities,
+            'groupName' => $building,
+        ]);
+    }
 }
