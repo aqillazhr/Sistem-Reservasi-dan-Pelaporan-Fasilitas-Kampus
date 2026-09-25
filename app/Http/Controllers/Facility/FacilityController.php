@@ -254,28 +254,39 @@ class FacilityController extends Controller
         return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil diperbarui.');
     }
 
-    public function byFaculty(Request $request, string $faculty)
-    {
-        $facilities = Facility::query()
-            ->where('status', '!=', 'nonaktif')
-            ->whereHas('location', function ($q) use ($faculty) {
-                $q->where('fakultas', $faculty);
-            })
-            ->when($request->type_id, function ($q) use ($request) {
-                $q->where('type_id', $request->type_id);
-            })
-            ->with(['type', 'location', 'photos'])
-            ->paginate(12)
-            ->withQueryString();
+public function byFaculty(Request $request, string $faculty)
+{
+    $typeId = $request->query('type_id');
+    $status = $request->query('status');
 
-        $types = FacilityType::all();
+    $capacityMin = filter_var($request->query('capacity_min'), FILTER_VALIDATE_INT);
+    $capacityMax = filter_var($request->query('capacity_max'), FILTER_VALIDATE_INT);
+    $capacityMin = $capacityMin === false ? null : $capacityMin;
+    $capacityMax = $capacityMax === false ? null : $capacityMax;
 
-        return view('facilities.by-faculty', compact(
-            'facilities',
-            'faculty',
-            'types'
-        ));
-    }
+    $facilities = Facility::query()
+        ->where('status', '!=', 'nonaktif')
+        ->whereHas('location', fn ($q) => $q->where('fakultas', $faculty))
+        ->when($typeId, fn ($q) => $q->where('type_id', $typeId))
+        ->when($status, fn ($q) => $q->where('status', $status))
+        ->when($capacityMin !== null, fn ($q) => $q->where('capacity', '>=', $capacityMin))
+        ->when($capacityMax !== null, fn ($q) => $q->where('capacity', '<=', $capacityMax))
+        ->with(['type', 'location', 'photos'])
+        ->paginate(12)
+        ->withQueryString();
+
+    $types = FacilityType::all();
+
+    return view('facilities.by-faculty', compact(
+        'facilities',
+        'faculty',
+        'types',
+        'typeId',
+        'status',
+        'capacityMin',
+        'capacityMax'
+    ));
+}
 
     public function byBuilding(string $building)
     {

@@ -3,15 +3,14 @@
 @section('title', 'Detail ' . $facility->name)
 
 @push('styles')
-
     <style>
         * {
             box-sizing: border-box;
         }
 
         /* =========================
-           CONTENT
-        ========================= */
+               CONTENT
+            ========================= */
 
         .container {
             padding: 20px 0 40px;
@@ -40,8 +39,8 @@
 
 
         /* =========================
-           DETAIL CARD
-        ========================= */
+               DETAIL CARD
+            ========================= */
 
         .detail-card {
             background: white;
@@ -144,8 +143,8 @@
         }
 
         /* =========================
-           JADWAL
-        ========================= */
+               JADWAL
+            ========================= */
 
         .schedule-header {
             position: relative;
@@ -190,8 +189,8 @@
 
 
         /* =========================
-           CALENDAR
-        ========================= */
+               CALENDAR
+            ========================= */
 
         .calendar {
             display: none;
@@ -316,8 +315,8 @@
 
 
         /* =========================
-           AVAILABILITY
-        ========================= */
+               AVAILABILITY
+            ========================= */
 
         .availability {
             margin-top: 25px;
@@ -384,15 +383,15 @@
             background: #f1e8ff;
         }
     </style>
-    @endpush
+@endpush
 
 
 
-    <!-- =========================
+<!-- =========================
          CONTENT
     ========================= -->
 
-    @section('content')
+@section('content')
     <main class="container">
 
 
@@ -406,16 +405,20 @@
         <div class="detail-header">
             <h1>Detail Fasilitas</h1>
 
-            <a href="{{ route('pengguna.reservations.create') }}" class="reserve-button">
-                Ajukan Reservasi
-            </a>
+            @auth
+                @if (auth()->user()->role === 'pengguna')
+                    <a href="{{ route('pengguna.reservations.create') }}" class="reserve-button">
+                        Ajukan Reservasi
+                    </a>
+                @endif
+            @endauth
         </div>
 
 
 
         <!-- =========================
-             DETAIL FASILITAS
-        ========================= -->
+                 DETAIL FASILITAS
+            ========================= -->
 
         <div class="detail-card">
 
@@ -423,8 +426,7 @@
             <div class="facility-image">
 
                 @if ($facility->photos->first())
-                    <img src="{{ asset('storage/' . $facility->photos->first()->file_path) }}"
-                        alt="{{ $facility->name }}">
+                    <img src="{{ asset('storage/' . $facility->photos->first()->file_path) }}" alt="{{ $facility->name }}">
                 @else
                     <div class="no-image"></div>
                 @endif
@@ -541,8 +543,8 @@
 
 
         <!-- =========================
-             JADWAL
-        ========================= -->
+                 JADWAL
+            ========================= -->
 
         <h2>
             Jadwal Fasilitas
@@ -559,8 +561,8 @@
 
 
             <!-- =========================
-                 CALENDAR
-            ========================= -->
+                     CALENDAR
+                ========================= -->
 
             <div id="calendar" class="calendar">
 
@@ -603,8 +605,8 @@
 
 
         <!-- =========================
-             AVAILABILITY
-        ========================= -->
+                 AVAILABILITY
+            ========================= -->
 
         <div class="availability">
 
@@ -860,8 +862,8 @@
 
 
     <!-- =========================
-         JAVASCRIPT CALENDAR
-    ========================= -->
+             JAVASCRIPT CALENDAR
+        ========================= -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
