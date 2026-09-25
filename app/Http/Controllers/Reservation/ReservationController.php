@@ -31,25 +31,89 @@ class ReservationController extends Controller
     // "Halaman Reservasi" (Pilih Aktivitas): Ajukan Reservasi / Reservasi Saya
     public function hub(Request $request)
     {
-        $counts = Reservation::query()
-            ->where('user_id', $request->user()->id)
-            ->select('status')
+        $userId = $request->user()->id;
+        $now    = now();
+
+        $base = Reservation::where('user_id', $userId);
+
+        // Hitung per status DB (pending, rejected, cancelled)
+        $byStatus = (clone $base)->select('status')
             ->selectRaw('COUNT(*) as total')
             ->groupBy('status')
             ->pluck('total', 'status');
 
+        // Aktif = approved yang belum selesai
+        $aktif = (clone $base)->where('status', 'approved')
+            ->where(fn ($q) => $q
+                ->whereDate('reservation_date', '>', $now->toDateString())
+                ->orWhere(fn ($q2) => $q2
+                    ->whereDate('reservation_date', $now->toDateString())
+                    ->where('end_time', '>', $now->format('H:i:s'))
+                )
+            )->count();
+
+        // Selesai = approved yang sudah lewat
+        $selesai = (clone $base)->where('status', 'approved')
+            ->where(fn ($q) => $q
+                ->whereDate('reservation_date', '<', $now->toDateString())
+                ->orWhere(fn ($q2) => $q2
+                    ->whereDate('reservation_date', $now->toDateString())
+                    ->where('end_time', '<=', $now->format('H:i:s'))
+                )
+            )->count();
+
+        $counts = [
+            'pending'    => $byStatus['pending']   ?? 0,
+            'aktif'      => $aktif,
+            'selesai'    => $selesai,
+            'rejected'   => $byStatus['rejected']  ?? 0,
+            'cancelled'  => $byStatus['cancelled'] ?? 0,
+        ];
+
         return view('reservations.hub', compact('counts'));
     }
 
-    // "Halaman Reservasi Saya": Menunggu, Aktif, Ditolak, Dibatalkan
+    // "Halaman Reservasi Saya": Menunggu, Aktif, Selesai, Ditolak, Dibatalkan
     public function history(Request $request)
     {
-        $tabs = ['menunggu' => 'pending', 'aktif' => 'approved', 'ditolak' => 'rejected', 'dibatalkan' => 'cancelled'];
         $tab = $request->query('status');
+        $now = now();
 
-        $reservations = $request->user()->reservations()
-            ->with('facility.location')
-            ->when(isset($tabs[$tab]), fn ($q) => $q->where('status', $tabs[$tab]))
+        $query = $request->user()->reservations()->with('facility.location');
+
+        $query = match ($tab) {
+            'menunggu'   => $query->where('status', 'pending'),
+            'aktif'      => $query->where('status', 'approved')
+                                  ->where(fn ($q) => $q
+                                      ->whereDate('reservation_date', '>', $now->toDateString())
+                                      ->orWhere(fn ($q2) => $q2
+                                          ->whereDate('reservation_date', $now->toDateString())
+                                          ->where('end_time', '>', $now->format('H:i:s'))
+                                      )
+                                  ),
+            'selesai'    => $query->where('status', 'approved')
+                                  ->where(fn ($q) => $q
+                                      ->whereDate('reservation_date', '<', $now->toDateString())
+                                      ->orWhere(fn ($q2) => $q2
+                                          ->whereDate('reservation_date', $now->toDateString())
+                                          ->where('end_time', '<=', $now->format('H:i:s'))
+                                      )
+                                  ),
+            'ditolak'    => $query->where('status', 'rejected'),
+            'dibatalkan' => $query->where('status', 'cancelled'),
+            default      => $query, // semua
+        };
+
+        $validTabs = ['menunggu', 'aktif', 'selesai', 'ditolak', 'dibatalkan'];
+        $tabLabels = [
+            'menunggu'   => 'Menunggu',
+            'aktif'      => 'Aktif',
+            'selesai'    => 'Selesai',
+            'ditolak'    => 'Ditolak',
+            'dibatalkan' => 'Dibatalkan',
+        ];
+
+        $reservations = $query
             ->orderByDesc('reservation_date')
             ->orderByDesc('start_time')
             ->paginate(10)
@@ -57,8 +121,9 @@ class ReservationController extends Controller
 
         return view('reservations.index', [
             'reservations' => $reservations,
-            'tab' => isset($tabs[$tab]) ? $tab : null,
-            'tabs' => array_keys($tabs),
+            'tab'          => in_array($tab, $validTabs, true) ? $tab : null,
+            'tabs'         => $validTabs,
+            'tabLabels'    => $tabLabels,
         ]);
     }
 

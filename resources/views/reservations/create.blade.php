@@ -87,8 +87,9 @@
                 border: none;
                 border-radius: 14px;
                 padding: 0;
-                width: min(860px, 95vw);
-                max-height: 90vh;
+                width: min(1200px, 96vw);
+                max-width: none;
+                max-height: 92vh;
                 overflow-y: auto;
                 box-shadow: 0 20px 60px rgba(38,15,69,.35);
                 font-family: 'Sora', Helvetica, sans-serif;
@@ -221,7 +222,7 @@
                         </button>
                     @endforeach
                 </div>
-                <p class="muted" style="margin: 8px 0 20px">Klik slot awal, lalu slot akhir — atau pilih dari dropdown di bawah.</p>
+                <p class="muted" style="margin: 8px 0 20px">Klik slot awal, lalu slot akhir, atau pilih dari dropdown di bawah.</p>
 
                 {{-- Form booking --}}
                 <form method="POST" action="{{ route('pengguna.reservations.store') }}" id="rsvForm" novalidate>

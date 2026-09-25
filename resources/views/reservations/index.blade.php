@@ -45,7 +45,8 @@
         <nav class="tabs" aria-label="Filter status">
             <a href="{{ route('pengguna.reservations.index') }}" @class(['on' => $tab === null])>Semua</a>
             @foreach ($tabs as $t)
-                <a href="{{ route('pengguna.reservations.index', ['status' => $t]) }}" @class(['on' => $tab === $t])>{{ ucfirst($t) }}</a>
+                <a href="{{ route('pengguna.reservations.index', ['status' => $t]) }}"
+                   @class(['on' => $tab === $t])>{{ $tabLabels[$t] }}</a>
             @endforeach
         </nav>
 
@@ -59,7 +60,7 @@
                             {{ $r->start_short }}–{{ $r->end_short }}
                         </div>
                     </div>
-                    <span class="badge {{ $r->status }}">{{ $r->status_label }}</span>
+                    <span class="badge {{ $r->isFinished() ? 'selesai' : $r->status }}">{{ $r->status_label }}</span>
                 </a>
             @empty
                 <div class="card">

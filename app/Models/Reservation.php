@@ -74,8 +74,18 @@ class Reservation extends Model
     // Accessor / helper tampilan & aturan
     // ------------------------------------------------------------
 
+    /** Reservasi approved yang jam selesainya sudah lewat dianggap selesai. */
+    public function isFinished(): bool
+    {
+        return $this->status === 'approved' && now()->gt($this->endsAt());
+    }
+
     public function getStatusLabelAttribute(): string
     {
+        if ($this->isFinished()) {
+            return 'Selesai';
+        }
+
         return self::STATUS_LABELS[$this->status] ?? $this->status;
     }
 
