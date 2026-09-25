@@ -28,7 +28,36 @@ class FacilityController extends Controller
     {
         $search = trim($request->query('search', ''));
 
-        // Kapasitas minimal dari parameter ?kapasitas=
+        // =========================
+        // FILTER TIPE
+        // =========================
+        $typeId = $request->query('type_id');
+
+        // =========================
+        // FILTER STATUS
+        // =========================
+        $status = $request->query('status');
+
+        // =========================
+        // FILTER KAPASITAS
+        // =========================
+        $capacityMin = filter_var(
+            $request->query('capacity_min'),
+            FILTER_VALIDATE_INT
+        );
+
+        $capacityMax = filter_var(
+            $request->query('capacity_max'),
+            FILTER_VALIDATE_INT
+        );
+
+        $capacityMin = $capacityMin === false ? null : $capacityMin;
+        $capacityMax = $capacityMax === false ? null : $capacityMax;
+
+        // =========================
+        // BACKWARD COMPATIBILITY
+        // ?kapasitas=100
+        // =========================
         $capacity = filter_var(
             $request->query('kapasitas'),
             FILTER_VALIDATE_INT,
@@ -42,88 +71,105 @@ class FacilityController extends Controller
 
         $capacity = $capacity === false ? null : $capacity;
 
-        // Cek apakah search mengandung "kapasitas 100"
+        // Kalau masih memakai ?kapasitas=100,
+        // dianggap sebagai kapasitas minimum.
+        if ($capacity !== null && $capacityMin === null) {
+            $capacityMin = $capacity;
+        }
+
+        // =========================
+        // SEARCH "kapasitas 100"
+        // =========================
         if (preg_match('/kapasitas\s+(\d+)/i', $search, $matches)) {
+
             $capacityFromSearch = (int) $matches[1];
 
-            if ($capacity === null) {
-                $capacity = $capacityFromSearch;
+            if ($capacityMin === null) {
+                $capacityMin = $capacityFromSearch;
             }
 
-            // Hapus bagian "kapasitas 100" dari keyword
-            // supaya sisanya tetap bisa dipakai untuk pencarian teks.
             $search = trim(
                 preg_replace('/kapasitas\s+\d+/i', '', $search)
             );
         }
 
-        $facilities = collect();
+        // =========================
+        // QUERY
+        // =========================
+        $facilities = Facility::query()
 
-        if ($search !== '' || $capacity !== null) {
+            // SEARCH
+            ->when($search !== '', function ($q) use ($search) {
 
-            $facilities = Facility::query()
+                $q->where(function ($query) use ($search) {
 
-                // Fasilitas nonaktif tidak ditampilkan
-                ->where('status', '!=', 'nonaktif')
+                    $query->where(
+                        'name',
+                        'like',
+                        '%'.$search.'%'
+                    )
+                        ->orWhereHas('type', function ($typeQuery) use ($search) {
+                            $typeQuery->where(
+                                'name',
+                                'like',
+                                '%'.$search.'%'
+                            );
+                        })
+                        ->orWhereHas('location', function ($locationQuery) use ($search) {
 
-                // SEARCH TEKS:
-                // nama fasilitas
-                // tipe
-                // fakultas
-                // prodi
-                // gedung
-                // ruangan
-                ->when($search !== '', function ($q) use ($search) {
+                            $locationQuery
+                                ->where('fakultas', 'like', '%'.$search.'%')
+                                ->orWhere('prodi', 'like', '%'.$search.'%')
+                                ->orWhere('gedung', 'like', '%'.$search.'%')
+                                ->orWhere('ruangan', 'like', '%'.$search.'%');
+                        });
+                });
+            })
 
-                    $q->where(function ($query) use ($search) {
+            // FILTER TIPE
+            ->when($typeId, function ($q) use ($typeId) {
+                $q->where('type_id', $typeId);
+            })
 
-                        // Nama fasilitas
-                        $query->where('name', 'like', '%'.$search.'%')
+            // FILTER STATUS
+            ->when($status, function ($q) use ($status) {
+                $q->where('status', $status);
+            })
 
-                            // Tipe fasilitas
-                            ->orWhereHas('type', function ($typeQuery) use ($search) {
-                                $typeQuery->where(
-                                    'name',
-                                    'like',
-                                    '%'.$search.'%'
-                                );
-                            })
+            // KAPASITAS MINIMUM
+            ->when($capacityMin !== null, function ($q) use ($capacityMin) {
+                $q->where('capacity', '>=', $capacityMin);
+            })
 
-                            // Lokasi
-                            ->orWhereHas('location', function ($locationQuery) use ($search) {
+            // KAPASITAS MAKSIMUM
+            ->when($capacityMax !== null, function ($q) use ($capacityMax) {
+                $q->where('capacity', '<=', $capacityMax);
+            })
 
-                                $locationQuery
-                                    ->where('fakultas', 'like', '%'.$search.'%')
-                                    ->orWhere('prodi', 'like', '%'.$search.'%')
-                                    ->orWhere('gedung', 'like', '%'.$search.'%')
-                                    ->orWhere('ruangan', 'like', '%'.$search.'%');
-                            });
-                    });
-                })
+            ->with([
+                'type',
+                'location',
+                'photos',
+            ])
 
-                // Kapasitas minimal
-                ->when(
-                    $capacity !== null,
-                    fn ($q) => $q->where('capacity', '>=', $capacity)
-                )
+            ->paginate(12)
 
-                ->with([
-                    'type',
-                    'location',
-                    'photos',
-                ])
+            ->withQueryString();
 
-                ->paginate(12)
-
-                ->withQueryString();
-        }
+        // Data dropdown tipe
+        $types = FacilityType::orderBy('name')->get();
 
         return view(
             'facilities.index',
             compact(
                 'facilities',
                 'search',
-                'capacity'
+                'typeId',
+                'status',
+                'capacity',
+                'capacityMin',
+                'capacityMax',
+                'types'
             )
         );
     }
