@@ -339,7 +339,10 @@
          INFORMASI SEARCH/FILTER
     ========================= --}}
 
-        @if ($search || $typeId || $capacityMin || $capacityMax)
+
+
+        @if ($search || $typeId || $status || $capacityMin || $capacityMax)
+
 
             <div class="result-info">
 
