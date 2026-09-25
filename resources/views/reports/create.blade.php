@@ -292,6 +292,11 @@
                         Pilih Fakultas
                     </option>
 
+                    {{-- FAKULTAS / TINGKAT FASILITAS --}}
+                    <option value="__UNIVERSITAS__">
+                        Non-Fakultas
+                    </option>
+
                     @foreach (
                         $facilities
                             ->pluck('location.fakultas')
@@ -578,15 +583,36 @@ facultySelect.addEventListener('change', function () {
     typeSelect.disabled = true;
     facilitySelect.disabled = true;
 
+
     if (!selectedFaculty) {
         return;
     }
 
+
     const filteredFacilities =
-        facilities.filter(facility =>
-            facility.location &&
-            facility.location.fakultas === selectedFaculty
-        );
+        facilities.filter(facility => {
+
+            if (!facility.location) {
+                return false;
+            }
+
+
+            // Fasilitas tingkat universitas
+            if (selectedFaculty === '__UNIVERSITAS__') {
+
+                return facility.location.scope_level === 'universitas';
+
+            }
+
+
+            // Fasilitas tingkat fakultas
+            return (
+                facility.location.scope_level === 'fakultas' &&
+                facility.location.fakultas === selectedFaculty
+            );
+
+        });
+
 
     const types = [
         ...new Map(
@@ -599,6 +625,7 @@ facultySelect.addEventListener('change', function () {
         ).entries()
     ];
 
+
     types.forEach(([id, name]) => {
 
         const option =
@@ -610,6 +637,7 @@ facultySelect.addEventListener('change', function () {
         typeSelect.appendChild(option);
 
     });
+
 
     typeSelect.disabled = false;
 
@@ -624,35 +652,74 @@ typeSelect.addEventListener('change', function () {
     const selectedType =
         this.value;
 
+
     facilitySelect.innerHTML =
         '<option value="">Pilih fasilitas</option>';
 
     facilitySelect.disabled = true;
 
+
     if (!selectedType) {
         return;
     }
 
+
     const filteredFacilities =
-        facilities.filter(facility =>
-            facility.location &&
-            facility.location.fakultas === selectedFaculty &&
-            facility.type &&
-            String(facility.type.id) ===
-                String(selectedType)
-        );
+        facilities.filter(facility => {
+
+            if (!facility.location) {
+                return false;
+            }
+
+
+            const sameType =
+                facility.type &&
+                String(facility.type.id) ===
+                    String(selectedType);
+
+
+            if (!sameType) {
+                return false;
+            }
+
+
+            // Tingkat universitas
+            if (selectedFaculty === '__UNIVERSITAS__') {
+
+                return (
+                    facility.location.scope_level ===
+                    'universitas'
+                );
+
+            }
+
+
+            // Tingkat fakultas
+            return (
+                facility.location.scope_level ===
+                    'fakultas' &&
+                facility.location.fakultas ===
+                    selectedFaculty
+            );
+
+        });
+
 
     filteredFacilities.forEach(facility => {
 
         const option =
             document.createElement('option');
 
-        option.value = facility.id;
-        option.textContent = facility.name;
+        option.value =
+            facility.id;
+
+        option.textContent =
+            facility.name;
 
         facilitySelect.appendChild(option);
 
     });
+
 
     facilitySelect.disabled = false;
 
