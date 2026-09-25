@@ -1,63 +1,175 @@
-@extends('layouts.app')
+@extends('layouts.dashboard')
+
+@section('title', 'Laporan Saya')
 
 @section('content')
 
-<div class="mx-auto max-w-6xl px-6 py-8">
+<style>
+    .history-page {
+        width: 100%;
+    }
 
-    <div class="flex items-center justify-between">
+    .history-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: #260f45;
+        margin-bottom: 18px;
+    }
 
-        <div>
+    .tabs {
+        display: flex;
+        margin-bottom: 18px;
+    }
 
-            <h1 class="text-3xl font-bold">
-                Laporan Saya
-            </h1>
+    .tab {
+        padding: 7px 22px;
+        border: 1px solid #bd93f8;
+        color: #260f45;
+        font-size: 12px;
+    }
 
-            <p class="mt-2 text-gray-500">
-                Pantau status laporan kerusakan fasilitas.
-            </p>
+    .tab:first-child {
+        border-radius: 20px 0 0 20px;
+    }
 
-        </div>
+    .tab:last-child {
+        border-radius: 0 20px 20px 0;
+    }
+
+    .tab.active {
+        background: #9747ff;
+        color: #ffffff;
+    }
+
+    .table-wrap {
+        width: 100%;
+        overflow-x: auto;
+        background: #ffffff;
+        border: 1px solid #bd93f8;
+        border-radius: 6px;
+    }
+
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+    }
+
+    .report-table th {
+        background: #bd93f8;
+        color: #260f45;
+        padding: 10px 8px;
+        font-size: 10px;
+        text-align: left;
+    }
+
+    .report-table td {
+        padding: 11px 8px;
+        border-top: 1px solid #e2d3f8;
+        font-size: 10px;
+        vertical-align: top;
+    }
+
+    .status {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 4px;
+        font-size: 9px;
+        font-weight: 700;
+    }
+
+    .status-baru {
+        background: #d5ebff;
+        color: #155a8a;
+    }
+
+    .status-diproses {
+        background: #ffe9ad;
+        color: #805b00;
+    }
+
+    .status-selesai {
+        background: #c9f7d3;
+        color: #176b2c;
+    }
+
+    .status-ditolak {
+        background: #ffd2d2;
+        color: #a12626;
+    }
+
+    .detail-link {
+        color: #9747ff;
+        font-weight: 700;
+        text-decoration: underline;
+    }
+
+    .empty {
+        padding: 40px;
+        text-align: center;
+        color: #76677f;
+    }
+</style>
+
+<div class="history-page">
+
+    <h1 class="history-title">
+        Riwayat Saya
+    </h1>
+
+    <div class="tabs">
 
         <a
-            href="{{ route('pengguna.reports.create') }}"
-            class="rounded-lg bg-black px-5 py-3 font-semibold text-white"
+            href="{{ route('pengguna.reservations.index') }}"
+            class="tab"
         >
-            + Buat Laporan
+            Reservasi
         </a>
+
+        <span class="tab active">
+            Laporan
+        </span>
 
     </div>
 
 
-    @if (session('status'))
+    <div class="table-wrap">
 
-        <div class="mt-6 rounded-lg bg-green-50 p-4 text-green-700">
-            {{ session('status') }}
-        </div>
+        <table class="report-table">
 
-    @endif
-
-
-    <div class="mt-8 overflow-hidden rounded-xl bg-white shadow">
-
-        <table class="w-full">
-
-            <thead class="bg-gray-100">
+            <thead>
 
                 <tr>
 
-                    <th class="px-6 py-4 text-left">
+                    <th>
+                        Tgl. Pelaporan
+                    </th>
+
+                    <th>
                         Fasilitas
                     </th>
 
-                    <th class="px-6 py-4 text-left">
-                        Kategori
+                    <th>
+                        Tipe
                     </th>
 
-                    <th class="px-6 py-4 text-left">
+                    <th>
+                        Kategori Kerusakan
+                    </th>
+
+                    <th>
+                        Deskripsi
+                    </th>
+
+                    <th>
+                        Dokumentasi
+                    </th>
+
+                    <th>
                         Status
                     </th>
 
-                    <th class="px-6 py-4 text-left">
+                    <th>
                         Aksi
                     </th>
 
@@ -69,32 +181,55 @@
 
                 @forelse ($reports as $report)
 
-                    <tr class="border-t">
+                    <tr>
 
-                        <td class="px-6 py-4">
-                            {{ $report->facility->name }}
+                        <td>
+                            {{ $report->created_at->format('d M Y') }}
                         </td>
 
-                        <td class="px-6 py-4">
+                        <td>
+                            {{ $report->facility->name }}
+
+                            <br>
+
+                            {{ $report->facility->location->gedung ?? '-' }}
+                        </td>
+
+                        <td>
+                            {{ $report->facility->type->name ?? '-' }}
+                        </td>
+
+                        <td>
                             {{ $report->category }}
                         </td>
 
-                        <td class="px-6 py-4">
+                        <td>
+                            {{ $report->description ?: '-' }}
+                        </td>
 
-                            <span class="rounded-full bg-gray-100 px-3 py-1 text-sm">
-                                {{ strtoupper($report->status) }}
+                        <td>
+
+                            {{ $report->photos->count() }}
+                            foto
+
+                        </td>
+
+                        <td>
+
+                            <span class="status status-{{ $report->status }}">
+                                {{ ucfirst($report->status) }}
                             </span>
 
                         </td>
 
-                        <td class="px-6 py-4">
+                        <td>
 
                             <a
                                 href="{{ route(
                                     'pengguna.reports.show',
                                     $report
                                 ) }}"
-                                class="font-semibold underline"
+                                class="detail-link"
                             >
                                 Detail
                             </a>
@@ -108,10 +243,10 @@
                     <tr>
 
                         <td
-                            colspan="4"
-                            class="px-6 py-10 text-center text-gray-500"
+                            colspan="8"
+                            class="empty"
                         >
-                            Belum ada laporan.
+                            Belum ada laporan yang dikirim.
                         </td>
 
                     </tr>

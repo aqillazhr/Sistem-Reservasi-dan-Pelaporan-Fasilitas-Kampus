@@ -140,17 +140,12 @@ class FacilityController extends Controller
     {
         $facilities = Facility::query()
             ->where('status', '!=', 'nonaktif')
-
-            // Filter berdasarkan fakultas
             ->whereHas('location', function ($q) use ($faculty) {
                 $q->where('fakultas', $faculty);
             })
-
-            // Filter berdasarkan tipe
             ->when($request->type_id, function ($q) use ($request) {
                 $q->where('type_id', $request->type_id);
             })
-
             ->with(['type', 'location', 'photos'])
             ->paginate(12)
             ->withQueryString();
@@ -162,5 +157,25 @@ class FacilityController extends Controller
             'faculty',
             'types'
         ));
+    }
+
+    public function byBuilding(string $building)
+    {
+        $facilities = Facility::query()
+            ->where('status', '!=', 'nonaktif')
+            ->whereHas('location', function ($q) use ($building) {
+                $q->where('scope_level', 'universitas')
+                    ->where(function ($q2) use ($building) {
+                        $q2->where('gedung', $building)
+                            ->orWhere('ruangan', $building);
+                    });
+            })
+            ->with(['type', 'location', 'photos'])
+            ->paginate(12);
+
+        return view('facilities.by-group', [
+            'facilities' => $facilities,
+            'groupName' => $building,
+        ]);
     }
 }

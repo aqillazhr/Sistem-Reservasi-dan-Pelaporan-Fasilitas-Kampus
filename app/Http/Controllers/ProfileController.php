@@ -6,15 +6,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
-/**
- * Modul: Profil (Orang 1)
- * Bisa diakses semua role yang sudah login (admin, petugas, pengguna).
- */
+
 class ProfileController extends Controller
 {
     public function show(Request $request)
     {
-        return view('profile.show', ['user' => $request->user()]);
+        $user = $request->user();
+
+        $initials = collect(explode(' ', $user->name))
+            ->map(fn ($w) => mb_substr($w, 0, 1))
+            ->take(2)
+            ->implode('');
+
+        return view('profile.show', ['user' => $user, 'initials' => $initials]);
     }
 
     public function update(Request $request)
@@ -30,8 +34,8 @@ class ProfileController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        // Password baru bersifat opsional, kalau field-nya dikosongkan
-        // berarti user nggak mau ganti password.
+        // Password baru bersifat opsional, kalau fieldnya dikosongin
+        // berarti user ga mau ganti password
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }

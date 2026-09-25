@@ -8,6 +8,40 @@
         <h1>Reservasi saya</h1>
         <p class="sub"><a href="{{ route('pengguna.reservations.create') }}">Ajukan reservasi baru</a></p>
 
+        <div style="
+            display:flex;
+            gap:0;
+            margin-bottom:18px;
+        ">
+            <a
+                href="{{ route('pengguna.reservations.index') }}"
+                style="
+                    padding:8px 22px;
+                    border:1px solid #9747ff;
+                    border-radius:20px 0 0 20px;
+                    background:#9747ff;
+                    color:white;
+                    font-size:12px;
+                    font-weight:600;"
+            >
+                Reservasi
+            </a>
+
+            <a
+                href="{{ route('pengguna.reports.index') }}"
+                style="
+                    padding:8px 22px;
+                    border:1px solid #9747ff;
+                    border-radius:0 20px 20px 0;
+                    background:white;
+                    color:#260f45;
+                    font-size:12px;
+                    font-weight:600;"
+            >
+                Laporan
+            </a>
+        </div>
+
         <nav class="tabs" aria-label="Filter status">
             <a href="{{ route('pengguna.reservations.index') }}" @class(['on' => $tab === null])>Semua</a>
             @foreach ($tabs as $t)

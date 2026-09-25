@@ -28,6 +28,10 @@ Route::get('/', function () {
     });
 })->name('home');
 Route::get('/fasilitas', [FacilityController::class, 'index'])->name('facilities.index');
+
+Route::get('/fasilitas/fakultas/{faculty}', [FacilityController::class, 'byFaculty'])->name('facilities.by-faculty');
+Route::get('/fasilitas/gedung/{building}', [FacilityController::class, 'byBuilding'])->name('facilities.by-building');
+
 Route::get('/fasilitas/{facility}', [FacilityController::class, 'show'])->name('facilities.show');
 
 // Data slot terpakai (Orang 3 -> dipakai kalender availability Orang 2). Read-only, tanpa data pemohon.
@@ -74,9 +78,15 @@ Route::middleware(['auth', 'role:pengguna'])->prefix('app')->name('pengguna.')->
         ->name('reservations.cancel');
 
     // Laporan (Orang 4)
-    Route::post('/laporan', [ReportController::class, 'store'])->name('reports.store');
     Route::get('/laporan', [ReportController::class, 'index'])->name('reports.index');
     Route::get('/laporan/create', [ReportController::class, 'create'])->name('reports.create');
+    Route::post('/laporan/draft', [ReportController::class, 'storeDraft'])->name('reports.store-draft');
+    Route::get('/laporan/draft', [ReportController::class, 'drafts'])->name('reports.drafts');
+    Route::delete('/laporan/{report}/foto/{photo}',[ReportController::class, 'deletePhoto'])->name('reports.delete-photo');
+    Route::get('/laporan/{report}/preview', [ReportController::class, 'preview'])->name('reports.preview');
+    Route::get('/laporan/{report}/edit', [ReportController::class, 'editDraft'])->name('reports.edit');
+    Route::put('/laporan/{report}/draft', [ReportController::class, 'updateDraft'])->name('reports.update-draft');
+    Route::post('/laporan/{report}/submit', [ReportController::class, 'submitDraft'])->name('reports.submit');
     Route::get('/laporan/{report}', [ReportController::class, 'show'])->name('reports.show');
 });
 
