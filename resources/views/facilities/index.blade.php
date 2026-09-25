@@ -1,20 +1,28 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hasil Pencarian</title>
-    <style>
-    body {
-        font-family: Arial, sans-serif;
-        margin: 0;
-        padding: 40px;
-        background: #faf7ff;
+@extends('layouts.dashboard')
+
+@section('title', 'Hasil Pencarian')
+
+@push('styles')
+<style>
+    .search-page {
+        padding: 10px 0 40px;
     }
 
-    h1 {
+    .search-page h1 {
         color: #54269a;
         font-size: 40px;
+        margin-top: 0;
+        margin-bottom: 20px;
+    }
+
+    .search-page > p {
+        margin-bottom: 20px;
+    }
+
+    .search-page hr {
+        border: none;
+        border-top: 1px solid #e0d5ee;
+        margin: 20px 0 25px;
     }
 
     .facility-card {
@@ -70,124 +78,160 @@
         padding: 20px;
         line-height: 1;
     }
-</style>
-</head>
 
-<body>
+    .facility-arrow:hover {
+        color: #54269a !important;
+    }
+</style>
+@endpush
+
+@section('content')
+
+<div class="search-page">
 
     <h1>Hasil Pencarian</h1>
+
     @if ($search || $capacity)
-        <p>Hasil pencarian
-            @if ($search) untuk: <strong>{{ $search }}</strong>@endif
-            @if ($capacity) · kapasitas minimal <strong>{{ $capacity }}</strong> orang @endif
+
+        <p>
+            Hasil pencarian
+
+            @if ($search)
+                untuk: <strong>{{ $search }}</strong>
+            @endif
+
+            @if ($capacity)
+                · kapasitas minimal <strong>{{ $capacity }}</strong> orang
+            @endif
         </p>
+
     @endif
-    {{-- Search & Filter --}}
-    <form method="GET" action="{{ route('facilities.index') }}">
-
-        <input
-            type="text"
-            name="search"
-            placeholder="Cari fasilitas..."
-            value="{{ request('search') }}"
-        >
-
-        <input
-            type="number"
-            name="kapasitas"
-            min="1"
-            max="100000"
-            placeholder="Kapasitas minimal"
-            value="{{ $capacity }}"
-            aria-label="Kapasitas minimal"
-        >
-
-        <button type="submit">Cari</button>
-
-    </form>
-
-
-    <hr>
-
 
     {{-- Hasil fasilitas --}}
+
     @forelse ($facilities as $facility)
 
         <div class="facility-card">
 
+
             {{-- Foto --}}
+
             <div class="facility-image">
+
                 @if ($facility->photos->first())
+
                     <img
                         src="{{ asset('storage/' . $facility->photos->first()->file_path) }}"
                         alt="{{ $facility->name }}"
                     >
+
                 @else
+
                     <div class="no-image"></div>
+
                 @endif
+
             </div>
 
+
             {{-- Informasi --}}
+
             <div class="facility-info">
 
-                <h2>{{ $facility->name }}</h2>
+                <h2>
+                    {{ $facility->name }}
+                </h2>
+
 
                 <div class="facility-details">
+
                     <div>
                         <span>Tipe</span>
-                        <strong>{{ $facility->type->name ?? '-' }}</strong>
+                        <strong>
+                            {{ $facility->type->name ?? '-' }}
+                        </strong>
                     </div>
+
 
                     <div>
                         <span>Kapasitas</span>
-                        <strong>{{ $facility->capacity }} orang</strong>
+                        <strong>
+                            {{ $facility->capacity }} orang
+                        </strong>
                     </div>
+
 
                     <div>
                         <span>Status</span>
-                        <strong>{{ ucfirst($facility->status) }}</strong>
+                        <strong>
+                            {{ ucfirst($facility->status) }}
+                        </strong>
                     </div>
+
 
                     <div>
                         <span>Ketersediaan</span>
-                        <strong>Tersedia</strong>
+                        <strong>
+                            Tersedia
+                        </strong>
                     </div>
+
 
                     <div>
                         <span>Lokasi</span>
-                        <strong>{{ $facility->location->ruangan ?? '-' }}</strong>
+                        <strong>
+                            {{ $facility->location->ruangan ?? '-' }}
+                        </strong>
                     </div>
+
                 </div>
 
             </div>
 
+
             {{-- Panah / detail --}}
-            <a href="{{ route('facilities.show', [
-                'facility' => $facility,
-                'from' => url()->full(),
-            ]) }}"
-            class="facility-arrow"
+
+            <a
+                href="{{ route('facilities.show', [
+                    'facility' => $facility,
+                    'from' => url()->full(),
+                ]) }}"
+                class="facility-arrow"
             >
                 ›
             </a>
 
         </div>
 
+
     @empty
 
         @if ($search || $capacity)
-            <p>Tidak ada fasilitas yang ditemukan.</p>
+
+            <p>
+                Tidak ada fasilitas yang ditemukan.
+            </p>
+
         @else
-            <p>Ketik nama fasilitas atau isi kapasitas minimal, lalu klik Cari.</p>
+
+            <p>
+                Ketik nama fasilitas atau isi kapasitas minimal,
+                lalu klik Cari.
+            </p>
+
         @endif
 
     @endforelse
 
 
     {{-- Pagination --}}
+
     @if ($facilities instanceof \Illuminate\Pagination\LengthAwarePaginator)
+
         {{ $facilities->links() }}
+
     @endif
 
-</body>
-</html>
+</div>
+
+@endsection

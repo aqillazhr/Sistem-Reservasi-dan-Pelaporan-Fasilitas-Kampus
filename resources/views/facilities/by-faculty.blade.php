@@ -1,21 +1,15 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@extends('layouts.dashboard')
 
-    <title>{{ $faculty }}</title>
+@section('title', $faculty)
 
+@push('styles')
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f8f3ff;
-            margin: 0;
+        .faculty-page {
             padding: 40px;
-            color: #54269a;
         }
 
-        h1 {
+        .faculty-page h1 {
+            color: #54269a;
             margin-bottom: 30px;
         }
 
@@ -29,52 +23,82 @@
         .facility-card h2 {
             margin-top: 0;
         }
+
+        .faculty-page {
+            padding: 20px 40px 40px;
+        }
+
+        .back-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            text-decoration: none;
+            margin-bottom: 5px;
+        }
+
+        .back-button span {
+            width: 13px;
+            height: 13px;
+            border-left: 4px solid #54269a;
+            border-bottom: 4px solid #54269a;
+            transform: rotate(45deg);
+        }
     </style>
-</head>
+@endpush
 
-<body>
+@section('content')
 
-    <h1>{{ $faculty }}</h1>
+    <div class="faculty-page">
+        <a href="{{ route('pengguna.dashboard') }}" class="back-button">
+            <span></span>
+        </a>
 
-    @forelse ($facilities as $facility)
+        <h1>{{ $faculty }}</h1>
 
-        <div class="facility-card">
+        @forelse ($facilities as $facility)
+            <div class="facility-card">
 
-            <h2>{{ $facility->name }}</h2>
+                <h2>{{ $facility->name }}</h2>
+
+                <p>
+                    <strong>Tipe:</strong>
+                    {{ $facility->type->name ?? '-' }}
+                </p>
+
+                <p>
+                    <strong>Kapasitas:</strong>
+                    {{ $facility->capacity }} orang
+                </p>
+
+                <p>
+                    <strong>Status:</strong>
+                    {{ $facility->status }}
+                </p>
+
+                <p>
+                    <strong>Lokasi:</strong>
+                    {{ $facility->location->fakultas ?? '-' }}
+                </p>
+
+                <a
+                    href="{{ route('facilities.show', [
+                        'facility' => $facility,
+                        'from' => url()->full(),
+                    ]) }}">
+                    Lihat Detail
+                </a>
+
+            </div>
+
+        @empty
 
             <p>
-                <strong>Tipe:</strong>
-                {{ $facility->type->name ?? '-' }}
+                Belum ada fasilitas di fakultas ini.
             </p>
+        @endforelse
 
-            <p>
-                <strong>Kapasitas:</strong>
-                {{ $facility->capacity }} orang
-            </p>
+    </div>
 
-            <p>
-                <strong>Status:</strong>
-                {{ $facility->status }}
-            </p>
-
-            <p>
-                <strong>Lokasi:</strong>
-                {{ $facility->location->fakultas ?? '-' }}
-            </p>
-
-            <a href="{{ route('facilities.show', $facility) }}">
-                Lihat Detail
-            </a>
-
-        </div>
-
-    @empty
-
-        <p>
-            Belum ada fasilitas di fakultas ini.
-        </p>
-
-    @endforelse
-
-</body>
-</html>
+@endsection
