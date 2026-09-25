@@ -4,9 +4,41 @@
 
 @section('content')
     @include('reservations._styles')
+
+    <style>
+        .history-switcher {
+            display: flex;
+            margin-bottom: 18px;
+        }
+
+        .history-switcher a {
+            padding: 7px 22px;
+            border: 1px solid #bd93f8;
+            color: #260f45;
+            font-size: 12px;
+            text-decoration: none;
+        }
+
+        .history-switcher a:first-child {
+            border-radius: 20px 0 0 20px;
+        }
+
+        .history-switcher a:last-child {
+            border-radius: 0 20px 20px 0;
+        }
+
+        .history-switcher a.active {
+            background: #9747ff;
+            color: #ffffff;
+        }
+    </style>
+
     <div class="rsv">
-        <h1>Reservasi saya</h1>
-        <p class="sub"><a href="{{ route('pengguna.reservations.create') }}">Ajukan reservasi baru</a></p>
+        <h1>Riwayat Saya</h1>
+        <div class="history-switcher">
+            <a href="{{ route('pengguna.reservations.index') }}"class="active">Reservasi</a>
+            <a href="{{ route('pengguna.reports.index') }}">Laporan</a>
+        </div>
 
         <nav class="tabs" aria-label="Filter status" id="rsvTabs">
             <a href="#" class="on" data-tab="semua">Semua</a>
