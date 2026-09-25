@@ -81,7 +81,8 @@ class ReservationController extends Controller
             ->orderByDesc('reservation_date')
             ->orderByDesc('start_time')
             ->paginate(50)
-            ->withQueryString();
+            ->withQueryString(); //kalau user berpindah ke halaman 2 atau 3, 
+                                 //parameter filter di URL-nya tidak hilang
 
         return view('reservations.index', [
             'reservations' => $reservations,

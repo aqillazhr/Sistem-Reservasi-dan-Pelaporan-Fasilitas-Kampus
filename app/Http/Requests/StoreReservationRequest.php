@@ -10,6 +10,8 @@ use Illuminate\Validation\Rule;
 /**
  * Validasi SERVER pengajuan reservasi. Client-side (JS di view) hanya
  * kemudahan pemakaian; yang menentukan tetap validasi di sini.
+ * middleware fokus ke user yg pakai tdk peduli yg diisikan user
+ * sedangkan request fokus ke isi formulir yg dikirimkan
  */
 class StoreReservationRequest extends FormRequest
 {
