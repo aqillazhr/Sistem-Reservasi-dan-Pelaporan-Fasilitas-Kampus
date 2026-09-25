@@ -339,7 +339,7 @@
          INFORMASI SEARCH/FILTER
     ========================= --}}
 
-        @if ($search || $typeId || $fakultas || $prodi || $gedung || $ruangan || $capacityMin || $capacityMax)
+        @if ($search || $typeId || $capacityMin || $capacityMax)
 
             <div class="result-info">
 
