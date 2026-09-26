@@ -405,10 +405,16 @@
                     let optS = document.createElement('option');
                     optS.value = b.start; optS.textContent = formatLabel(b.start);
                     s.appendChild(optS);
+
+                    // Jam selesai E hanya valid kalau slot TEPAT SEBELUM E ini ('free')
+                    // itu sendiri free — kalau slotnya sudah lewat/terisi/menunggu,
+                    // reservasi tidak mungkin berakhir tepat di situ. Makanya opsi ini
+                    // ikut dibuat di dalam blok `free` yang sama seperti jam mulai,
+                    // bukan untuk setiap slot seperti sebelumnya.
+                    let optE = document.createElement('option');
+                    optE.value = b.end; optE.textContent = formatLabel(b.end);
+                    e.appendChild(optE);
                 }
-                let optE = document.createElement('option');
-                optE.value = b.end; optE.textContent = formatLabel(b.end);
-                e.appendChild(optE);
             });
             
             s.removeEventListener('change', refreshFormDropdowns);
