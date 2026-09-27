@@ -76,6 +76,8 @@ class ReservationController extends Controller
     // "Halaman Reservasi Saya" — semua dimuat sekaligus, tab filter di client-side
     public function history(Request $request)
     {
+        $this->service->autoCancelExpired($request->user()->id);
+
         $reservations = $request->user()->reservations()
             ->with('facility.location')
             ->orderByDesc('reservation_date')
@@ -184,6 +186,9 @@ class ReservationController extends Controller
     {
         abort_unless($reservation->user_id === $request->user()->id, 403);
 
+        $this->service->autoCancelExpired($request->user()->id);
+        $reservation->refresh(); // status di atas bisa saja baru saja berubah jadi cancelled
+
         $reservation->load(['facility.location', 'statusLogs.changedBy']);
 
         // Alasan penolakan disimpan petugas di status_logs.note (new_status = rejected)
@@ -234,21 +239,69 @@ class ReservationController extends Controller
     }
 
     // ------------------------------------------------------------
-    // PETUGAS (belum direvisi di tahap ini — menyusul setelah sisi pengguna)
-    // TODO: approve() wajib pakai $this->service->hasConflict(..., ignoreReservationId)
-    //       di dalam DB::transaction + lock; reject()/petugasCancel() tulis status_logs.note
+    // PETUGAS
     // ------------------------------------------------------------
 
-    public function approve(Reservation $reservation)
+    // "Kelola Reservasi": daftar semua reservasi + tab status, aksi
+    // Setuju/Tolak (menunggu) atau Batalkan (disetujui) di tiap baris.
+    public function petugasIndex(Request $request)
     {
-        $reservation->update(['status' => 'approved']);
+        // Beresin dulu semua pending yang sudah lewat waktu bookingnya
+        // (lintas pengguna) sebelum antrian ini ditampilkan ke petugas.
+        $this->service->autoCancelExpired();
+
+        $validTabs = ['menunggu' => 'pending', 'disetujui' => 'approved', 'ditolak' => 'rejected', 'dibatalkan' => 'cancelled'];
+        $tab = $request->query('status', 'menunggu');
+        $tab = array_key_exists($tab, $validTabs) ? $tab : 'menunggu';
+        $q = trim((string) $request->query('q', ''));
+
+        $reservations = Reservation::query()
+            ->with(['user', 'facility.location'])
+            ->where('status', $validTabs[$tab])
+            ->when($q !== '', function ($query) use ($q) {
+                $like = '%'.addcslashes($q, '%_\\').'%';
+                $query->where(function ($sub) use ($like) {
+                    $sub->whereHas('user', fn ($u) => $u->where('name', 'like', $like))
+                        ->orWhereHas('facility', fn ($f) => $f->where('name', 'like', $like));
+                });
+            })
+            ->orderByDesc('created_at')
+            ->paginate(15)
+            ->withQueryString();
+
+        if ($request->ajax()) {
+            return view('reservations.partials.petugas-table', [
+                'reservations' => $reservations,
+                'tab' => $tab,
+            ]);
+        }
+
+        return view('reservations.petugas-index', [
+            'reservations' => $reservations,
+            'tab' => $tab,
+            'q' => $q,
+        ]);
+    }
+
+    // Dashboard petugas: dipanggil dari DashboardController::petugas() lewat
+    // component <x-dashboard.petugas-reservation-queue />, bukan lewat route
+    // terpisah — lihat app/View/Components/Dashboard/PetugasReservationQueue.php
+
+    public function approve(Request $request, Reservation $reservation)
+    {
+        $this->service->approveByOfficer($request->user(), $reservation->id);
 
         return back()->with('status', 'Reservasi disetujui.');
     }
 
-    public function reject(Reservation $reservation)
+    public function reject(Request $request, Reservation $reservation)
     {
-        $reservation->update(['status' => 'rejected']);
+        // Alasan wajib diisi (lihat flowchart: "Isi Alasan" sebelum status -> Ditolak).
+        $validated = $request->validate([
+            'note' => ['required', 'string', 'max:500'],
+        ]);
+
+        $this->service->rejectByOfficer($request->user(), $reservation->id, $validated['note']);
 
         return back()->with('status', 'Reservasi ditolak. Slot otomatis tersedia kembali.');
     }
@@ -256,13 +309,10 @@ class ReservationController extends Controller
     public function petugasCancel(Request $request, Reservation $reservation)
     {
         $validated = $request->validate([
-            'cancellation_reason' => ['required', 'string'],
+            'cancellation_reason' => ['required', 'string', 'max:500'],
         ]);
 
-        $reservation->update([
-            'status' => 'cancelled',
-            'cancellation_reason' => $validated['cancellation_reason'],
-        ]);
+        $this->service->cancelByOfficer($request->user(), $reservation->id, $validated['cancellation_reason']);
 
         return back()->with('status', 'Reservasi dibatalkan petugas.');
     }

@@ -70,23 +70,10 @@ class Reservation extends Model
         return $query->where('start_time', '<', $end)->where('end_time', '>', $start);
     }
 
-    // Reservasi pending yang masih "hidup" (belum lewat jam mulainya), dipakai
-    // untuk menghitung kuota max_pending_per_user. Kalau tidak dikecualikan,
-    // reservasi pending yang kelupaan diproses petugas dan sudah lewat waktunya
-    // akan terus mengunci kuota pengguna itu selamanya (lihat isExpired()).
-    public function scopeActivePending(Builder $query): Builder
-    {
-        $now = now();
-
-        return $query->where('status', 'pending')
-            ->where(fn ($q) => $q
-                ->whereDate('reservation_date', '>', $now->toDateString())
-                ->orWhere(fn ($q2) => $q2
-                    ->whereDate('reservation_date', $now->toDateString())
-                    ->where('end_time', '>', $now->format('H:i:s'))
-                )
-            );
-    }
+    // (scopeActivePending dihapus — sejak autoCancelExpired() ada, reservasi
+    // pending yang sudah lewat waktu bookingnya langsung dieksekusi jadi
+    // 'cancelled' beneran, jadi hitungan where('status','pending') biasa
+    // sudah otomatis benar tanpa perlu scope pengecualian lagi.)
 
     // ------------------------------------------------------------
     // Accessor / helper tampilan & aturan
@@ -98,45 +85,20 @@ class Reservation extends Model
         return $this->status === 'approved' && now()->gt($this->endsAt());
     }
 
-    /**
-     * Reservasi PENDING yang jam mulainya sudah lewat tapi petugas belum sempat
-     * approve/reject. Ini bukan status baru di database (skema tidak diubah) —
-     * murni label yang dihitung saat ditampilkan, sama seperti isFinished().
-     * Slotnya sendiri otomatis tidak lagi relevan (tanggalnya sudah lewat),
-     * jadi yang perlu dibenahi cuma tampilan & kuota pending (lihat
-     * scopeActivePending), bukan datanya.
-     */
-    public function isExpired(): bool
-    {
-        return $this->status === 'pending' && now()->gt($this->endsAt());
-    }
-
     public function getStatusLabelAttribute(): string
     {
         if ($this->isFinished()) {
             return 'Selesai';
         }
 
-        if ($this->isExpired()) {
-            return 'Kedaluwarsa';
-        }
-
         return self::STATUS_LABELS[$this->status] ?? $this->status;
     }
 
-    // Kelas CSS badge: 'selesai'/'kedaluwarsa' kalau derived state di atas aktif,
-    // kalau tidak pakai status mentahnya (pending/approved/rejected/cancelled).
+    // Kelas CSS badge: 'selesai' kalau derived state di atas aktif, kalau
+    // tidak pakai status mentahnya (pending/approved/rejected/cancelled).
     public function getStatusBadgeClassAttribute(): string
     {
-        if ($this->isFinished()) {
-            return 'selesai';
-        }
-
-        if ($this->isExpired()) {
-            return 'kedaluwarsa';
-        }
-
-        return $this->status;
+        return $this->isFinished() ? 'selesai' : $this->status;
     }
 
     public function getStartShortAttribute(): string

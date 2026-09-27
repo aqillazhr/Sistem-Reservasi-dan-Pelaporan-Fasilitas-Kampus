@@ -29,7 +29,7 @@
                     <dd>{{ $rejectNote }}</dd>
                 @endif
                 @if ($reservation->cancellation_reason)
-                    <dt>Alasan dibatalkan petugas</dt>
+                    <dt>Alasan dibatalkan</dt>
                     <dd>{{ $reservation->cancellation_reason }}</dd>
                 @endif
             </dl>
@@ -40,14 +40,8 @@
             <div class="card" style="margin-top:16px">
                 <button type="button" class="btn danger" id="openCancel" @disabled(! $canCancel)>Batalkan reservasi</button>
                 @unless ($canCancel)
-                    @if ($reservation->isExpired())
-                        <p class="muted">Jam mulai reservasi ini sudah lewat dan belum sempat diproses petugas,
-                            jadi otomatis dianggap kedaluwarsa. Tidak ada tindakan yang perlu kamu lakukan —
-                            slotnya juga tidak lagi mengunci kuota reservasi menunggumu.</p>
-                    @else
-                        <p class="muted">Pembatalan hanya bisa sampai {{ config('reservation.cancel_min_hours') }} jam sebelum jam mulai
-                            ({{ $reservation->cancelDeadline()->locale('id')->isoFormat('D MMM YYYY, HH.mm') }}).</p>
-                    @endif
+                    <p class="muted">Pembatalan hanya bisa sampai {{ config('reservation.cancel_min_hours') }} jam sebelum jam mulai
+                        ({{ $reservation->cancelDeadline()->locale('id')->isoFormat('D MMM YYYY, HH.mm') }}).</p>
                 @endunless
             </div>
 

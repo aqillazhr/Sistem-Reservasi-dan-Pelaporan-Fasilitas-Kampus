@@ -20,8 +20,16 @@ use Illuminate\Validation\ValidationException;
  */
 class ReservationService
 {
+    private ?int $systemUserIdCache = null;
+
     public function create(User $user, array $data): Reservation
     {
+        // Beresin dulu pending milik user ini yang sudah lewat waktu bookingnya
+        // (belum sempat diproses petugas) supaya tidak ikut mengunci kuota
+        // max_pending_per_user selamanya. Transaction terpisah dari transaction
+        // pengajuan baru di bawah, supaya tetap konsisten walau create() gagal.
+        $this->autoCancelExpired($user->id);
+
         return DB::transaction(function () use ($user, $data) {
             // 1) Serialkan pengajuan milik user yang sama (cek batas pending aman dari race).
             User::whereKey($user->id)->lockForUpdate()->firstOrFail();
@@ -36,7 +44,7 @@ class ReservationService
                 ]);
             }
 
-            $pending = Reservation::where('user_id', $user->id)->activePending()->count();
+            $pending = Reservation::where('user_id', $user->id)->where('status', 'pending')->count();
             $maxPending = (int) config('reservation.max_pending_per_user');
 
             if ($pending >= $maxPending) {
@@ -189,5 +197,179 @@ class ReservationService
         }
 
         return $board;
+    }
+
+    // ------------------------------------------------------------
+    // Auto-cancel reservasi pending yang sudah lewat WAKTU BOOKING-nya
+    // (bukan waktu pengajuannya) tapi belum sempat diproses petugas.
+    // Contoh: booking 12.00-12.30 tanggal 26, sekarang sudah jam 13.00
+    // tanggal 26 dan status masih 'pending' -> otomatis jadi 'cancelled',
+    // dengan catatan jelas dan pelaku "Sistem" (bukan log anonim).
+    //
+    // TIDAK pakai cron/scheduler (riskan kalau lupa dijalankan pas demo) —
+    // dipanggil "on the fly" di titik-titik yang relevan: sebelum hitung
+    // kuota pending (di atas), sebelum tampilkan riwayat/detail reservasi
+    // pengguna, dan sebelum tampilkan antrian petugas.
+    // ------------------------------------------------------------
+    public function autoCancelExpired(?int $userId = null): int
+    {
+        return DB::transaction(function () use ($userId) {
+            $now = now();
+
+            $query = Reservation::where('status', 'pending')
+                ->where(fn ($q) => $q
+                    ->whereDate('reservation_date', '<', $now->toDateString())
+                    ->orWhere(fn ($q2) => $q2
+                        ->whereDate('reservation_date', $now->toDateString())
+                        ->where('end_time', '<=', $now->format('H:i:s'))
+                    )
+                );
+
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+
+            $ids = $query->lockForUpdate()->pluck('id');
+
+            if ($ids->isEmpty()) {
+                return 0;
+            }
+
+            $reason = 'Dibatalkan otomatis oleh sistem karena sudah lewat waktu booking yang diminta.';
+            $systemUserId = $this->systemUserId();
+
+            Reservation::whereIn('id', $ids)->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $reason,
+            ]);
+
+            StatusLog::insert($ids->map(fn ($id) => [
+                'reservation_id' => $id,
+                'changed_by_user_id' => $systemUserId,
+                'old_status' => 'pending',
+                'new_status' => 'cancelled',
+                'note' => $reason,
+                'created_at' => $now,
+            ])->all());
+
+            return $ids->count();
+        }, 3);
+    }
+
+    private function systemUserId(): int
+    {
+        return $this->systemUserIdCache ??= User::where('email', config('reservation.system_account_email'))
+            ->value('id');
+    }
+
+    // ------------------------------------------------------------
+    // PETUGAS — approve/reject/batal darurat. Sama-sama transaction + lock,
+    // supaya tidak ada state reservasi yang berubah tanpa audit log, dan
+    // tidak ada perubahan "nyangkut" separuh kalau salah satu langkah gagal.
+    // ------------------------------------------------------------
+
+    public function approveByOfficer(User $officer, int $reservationId): Reservation
+    {
+        return DB::transaction(function () use ($officer, $reservationId) {
+            $reservation = Reservation::whereKey($reservationId)->lockForUpdate()->firstOrFail();
+
+            if ($reservation->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Reservasi ini sudah diproses sebelumnya.',
+                ]);
+            }
+
+            if (now()->gt($reservation->endsAt())) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Reservasi ini sudah lewat waktu booking-nya dan otomatis dibatalkan sistem, tidak bisa disetujui lagi.',
+                ]);
+            }
+
+            // Jaga-jaga: di jalur normal (semua reservasi lewat store(), yang
+            // sudah lock fasilitas + hasConflict() sebelum insert), dua
+            // reservasi pending/approved yang bentrok TIDAK BISA terjadi.
+            // Cek ini murah dan cuma jaring pengaman untuk data yang masuk
+            // di luar jalur normal (mis. lewat Tinker/seeder demo).
+            $conflict = $this->hasConflict(
+                $reservation->facility_id,
+                $reservation->reservation_date->toDateString(),
+                substr($reservation->start_time, 0, 5),
+                substr($reservation->end_time, 0, 5),
+                $reservation->id
+            );
+
+            if ($conflict) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Ada reservasi lain yang sudah disetujui pada slot yang sama. Tolak salah satunya dulu.',
+                ]);
+            }
+
+            $reservation->update(['status' => 'approved']);
+
+            StatusLog::create([
+                'reservation_id' => $reservation->id,
+                'changed_by_user_id' => $officer->id,
+                'old_status' => 'pending',
+                'new_status' => 'approved',
+                'note' => 'Disetujui petugas',
+            ]);
+
+            return $reservation;
+        }, 3);
+    }
+
+    public function rejectByOfficer(User $officer, int $reservationId, string $note): Reservation
+    {
+        return DB::transaction(function () use ($officer, $reservationId, $note) {
+            $reservation = Reservation::whereKey($reservationId)->lockForUpdate()->firstOrFail();
+
+            if ($reservation->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Reservasi ini sudah diproses sebelumnya.',
+                ]);
+            }
+
+            $reservation->update(['status' => 'rejected']);
+
+            // Alasan penolakan disimpan di status_logs.note (BUKAN cancellation_reason,
+            // kolom itu khusus pembatalan — lihat README-database.pdf).
+            StatusLog::create([
+                'reservation_id' => $reservation->id,
+                'changed_by_user_id' => $officer->id,
+                'old_status' => 'pending',
+                'new_status' => 'rejected',
+                'note' => $note,
+            ]);
+
+            return $reservation; // slot otomatis kembali free: occupyingSlot() hanya pending+approved
+        }, 3);
+    }
+
+    public function cancelByOfficer(User $officer, int $reservationId, string $reason): Reservation
+    {
+        return DB::transaction(function () use ($officer, $reservationId, $reason) {
+            $reservation = Reservation::whereKey($reservationId)->lockForUpdate()->firstOrFail();
+
+            if ($reservation->status !== 'approved') {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Hanya reservasi berstatus aktif yang bisa dibatalkan petugas.',
+                ]);
+            }
+
+            $reservation->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $reason,
+            ]);
+
+            StatusLog::create([
+                'reservation_id' => $reservation->id,
+                'changed_by_user_id' => $officer->id,
+                'old_status' => 'approved',
+                'new_status' => 'cancelled',
+                'note' => $reason,
+            ]);
+
+            return $reservation;
+        }, 3);
     }
 }

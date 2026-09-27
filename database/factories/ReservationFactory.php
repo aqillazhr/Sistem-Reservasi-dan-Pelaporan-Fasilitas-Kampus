@@ -54,7 +54,7 @@ class ReservationFactory extends Factory
                 ->inRandomOrder()
                 ->first()?->id
                 ?? Facility::factory()->create()->id,
-            'reservation_date'    => fake()->dateTimeBetween('now', '+60 days')->format('Y-m-d'),
+            'reservation_date'    => fake()->dateTimeBetween('now', '+7 days')->format('Y-m-d'),
             'start_time'          => $startTime,
             'end_time'            => $endTime,
             'purpose'             => fake()->randomElement(self::$purposes),

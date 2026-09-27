@@ -30,6 +30,15 @@ class ReservationPenggunaTest extends TestCase
         // Kamis 24 Sep 2026, 08.00 WIB
         Carbon::setTestNow(Carbon::create(2026, 9, 24, 8, 0, 0, 'Asia/Jakarta'));
 
+        // Akun Sistem wajib ada — dipakai ReservationService::autoCancelExpired()
+        // (dipanggil dari dalam create()) sebagai pelaku status_logs kalau ada
+        // reservasi pending yang perlu di-sweep jadi cancelled.
+        User::create([
+            'name' => 'Sistem', 'email' => config('reservation.system_account_email'),
+            'password' => 'password', 'role' => 'admin', 'user_type' => null,
+            'status' => 'verified', 'account_status' => 'aktif',
+        ]);
+
         $this->user = $this->makeUser('pengguna');
         $location = Location::create(['scope_level' => 'universitas']);
         $type = FacilityType::create(['name' => 'Aula']);
@@ -232,36 +241,32 @@ class ReservationPenggunaTest extends TestCase
     }
 
     // ==================================================================
-    // REVISI 3: reservasi pending yang jam mulainya sudah lewat tapi belum
-    // diproses petugas otomatis dianggap "Kedaluwarsa" (label saja, bukan
-    // status baru di DB) DAN tidak lagi mengunci kuota max_pending_per_user.
+    // Reservasi pending yang jam mulainya sudah lewat tapi belum diproses
+    // petugas: sekarang di-eksekusi BENERAN jadi status 'cancelled' oleh
+    // ReservationService::autoCancelExpired() (dipanggil dari dalam
+    // create() untuk user yang sama sebelum hitung kuota pending). Lihat
+    // ReservationPetugasTest untuk test langsung ke autoCancelExpired()
+    // itu sendiri (termasuk pencatatan status_logs atas nama akun Sistem).
     // ==================================================================
 
-    public function test_pending_yang_sudah_lewat_waktunya_berlabel_kedaluwarsa(): void
+    public function test_pending_lewat_waktu_booking_disweep_otomatis_saat_create_dan_tidak_lagi_mengunci_kuota(): void
     {
-        // Dibuat "kemarin" untuk slot yang sudah lewat, tanpa pernah diproses petugas.
-        $r = $this->makeReservation(['reservation_date' => '2026-09-23', 'start_time' => '09:00', 'end_time' => '10:00']);
-
-        $this->assertTrue($r->isExpired());
-        $this->assertSame('Kedaluwarsa', $r->status_label);
-        $this->assertSame('kedaluwarsa', $r->status_badge_class);
-        $this->assertSame('pending', $r->status); // DB tidak berubah, murni label tampilan
-    }
-
-    public function test_pending_kedaluwarsa_tidak_lagi_mengunci_kuota_max_pending(): void
-    {
-        // 1 pending yang sudah kedaluwarsa (kemarin, tidak pernah diproses)...
-        $this->makeReservation(['reservation_date' => '2026-09-23', 'start_time' => '09:00', 'end_time' => '10:00']);
-        // ...+ 9 pending aktif (besok, belum lewat) = 10 baris pending di DB,
-        // tapi cuma 9 yang masih "aktif" mengunci kuota.
+        // 1 pending yang sudah lewat waktu booking-nya (kemarin, tidak pernah
+        // diproses petugas)...
+        $expired = $this->makeReservation(['reservation_date' => '2026-09-23', 'start_time' => '09:00', 'end_time' => '10:00']);
+        // ...+ 9 pending aktif (besok, belum lewat) = 10 baris pending di DB.
         foreach (range(0, 8) as $i) {
             $this->makeReservation(['start_time' => sprintf('%02d:00', 10 + $i), 'end_time' => sprintf('%02d:30', 10 + $i)]);
         }
 
         $this->assertSame(10, Reservation::where('status', 'pending')->count());
 
-        // Kuota masih longgar (9 aktif < 10) -> pengajuan baru harus tetap diterima.
+        // create() men-sweep pending milik user ini dulu (autoCancelExpired) sebelum
+        // menghitung kuota -> yang sudah lewat waktu ikut jadi 'cancelled' beneran,
+        // kuota jadi longgar (9 < 10), pengajuan baru harus tetap diterima.
         $this->book(['start_time' => '19:00', 'end_time' => '19:30'])->assertSessionHasNoErrors();
+
+        $this->assertSame('cancelled', $expired->fresh()->status);
     }
 
     public function test_pending_yang_belum_kedaluwarsa_tetap_mengunci_kuota(): void

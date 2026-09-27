@@ -99,6 +99,7 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
     Route::get('/dashboard', [DashboardController::class, 'petugas'])->name('dashboard');
 
     // Reservasi (Orang 3)
+    Route::get('/reservasi', [ReservationController::class, 'petugasIndex'])->name('reservations.index');
     Route::post('/reservasi/{reservation}/approve', [ReservationController::class, 'approve'])->name('reservations.approve');
     Route::post('/reservasi/{reservation}/reject', [ReservationController::class, 'reject'])->name('reservations.reject');
     Route::post('/reservasi/{reservation}/batal', [ReservationController::class, 'petugasCancel'])->name('reservations.petugas-cancel');

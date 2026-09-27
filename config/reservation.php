@@ -25,4 +25,11 @@ return [
 
     // Maksimal reservasi berstatus 'pending' yang boleh dipegang satu pengguna.
     'max_pending_per_user' => 10,
+
+    // Email akun "Sistem" — dipakai sebagai changed_by_user_id di status_logs
+    // untuk perubahan status yang dilakukan otomatis (bukan oleh manusia),
+    // misalnya reservasi pending yang otomatis dibatalkan karena sudah lewat
+    // waktu booking-nya sebelum sempat diproses petugas. Akun ini TIDAK PERNAH
+    // dipakai untuk login manusia (lihat UserSeeder).
+    'system_account_email' => 'sistem@internal.local',
 ];

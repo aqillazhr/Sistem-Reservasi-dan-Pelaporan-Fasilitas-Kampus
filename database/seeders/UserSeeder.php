@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class UserSeeder extends Seeder
 {
@@ -12,6 +13,22 @@ class UserSeeder extends Seeder
     {
         // ─── Akun tetap (login credentials yang bisa dibagikan ke tim) ─────────
         $fixed = [
+            [
+                // Akun "Sistem": DIPAKAI SEBAGAI PELAKU DI status_logs untuk
+                // perubahan status otomatis (misal reservasi pending yang
+                // lewat waktu booking-nya otomatis dibatalkan sebelum sempat
+                // diproses petugas — lihat ReservationService::autoCancelExpired()).
+                // JANGAN dibagikan sebagai kredensial login: password acak
+                // dan tidak pernah dicatat di mana pun, akun ini murni jadi
+                // "pelaku" pencatatan, bukan untuk dipakai manusia login.
+                'name'           => 'Sistem',
+                'email'          => config('reservation.system_account_email'),
+                'password'       => Hash::make(Str::random(40)),
+                'role'           => 'admin',
+                'user_type'      => null,
+                'status'         => 'verified',
+                'account_status' => 'aktif',
+            ],
             [
                 'name'           => 'Admin PPK',
                 'email'          => 'admin@kampus.ac.id',

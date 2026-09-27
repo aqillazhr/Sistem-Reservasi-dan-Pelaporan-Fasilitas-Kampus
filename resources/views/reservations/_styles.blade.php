@@ -139,7 +139,6 @@
     .rsv .badge.pending   { background: var(--wait); color: #5a3e00; }
     .rsv .badge.approved  { background: var(--free); color: #1a5c1a; }
     .rsv .badge.selesai   { background: #e0f2fe; color: #0c4a6e; }
-    .rsv .badge.kedaluwarsa { background: #e5e7eb; color: #4b5563; }
     .rsv .badge.rejected,
     .rsv .badge.cancelled { background: #f3d1d1; color: #7a271a; }
 
