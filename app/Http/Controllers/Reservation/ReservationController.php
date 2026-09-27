@@ -109,17 +109,15 @@ class ReservationController extends Controller
             ->orderBy('name')
             ->paginate(8);
 
+        // Dirender di server (Blade auto-escape) lalu disuntikkan sebagai HTML
+        // jadi oleh JS — bukan lagi field mentah yang digabung ke innerHTML
+        // pakai template literal di client (itu tidak di-escape sama sekali).
         return response()->json([
-            'data' => $facilities->map(fn ($f) => [
-                'id'       => $f->id,
-                'name'     => $f->name,
-                'type'     => $f->type->name ?? '',
-                'capacity' => $f->capacity,
-                'location' => collect([$f->location->ruangan, $f->location->gedung, $f->location->fakultas])
-                                ->filter()->implode(', ') ?: 'Universitas',
-            ]),
-            'next_page_url'     => $facilities->nextPageUrl(),
-            'prev_page_url'     => $facilities->previousPageUrl(),
+            'html' => view('reservations.partials.facility-list', ['facilities' => $facilities])->render(),
+            'has_prev' => $facilities->currentPage() > 1,
+            'has_next' => $facilities->hasMorePages(),
+            'prev_page' => $facilities->currentPage() - 1,
+            'next_page' => $facilities->currentPage() + 1,
         ]);
     }
 
@@ -140,20 +138,22 @@ class ReservationController extends Controller
 
         $board = $this->service->slotBoard($facility->id, $date->toDateString());
 
+        // Detail fasilitas, papan slot, dan opsi jam dropdown SEMUA dirender
+        // Blade di server. Client tidak lagi menerima state mentah (free/
+        // pending/approved/past/toosoon) untuk dihitung ulang sendiri jadi
+        // tombol & opsi — dia cuma menyuntikkan HTML jadi ke DOM. Ini juga
+        // yang mencegah dropdown jam mulai & jam selesai bisa berbeda aturan
+        // seperti yang pernah terjadi waktu logikanya masih ditulis dobel di JS.
         return response()->json([
-            'facility' => [
-                'id'       => $facility->id,
-                'name'     => $facility->name,
-                'type'     => $facility->type->name ?? '',
-                'capacity' => $facility->capacity,
-                'location' => collect([$facility->location->ruangan, $facility->location->gedung, $facility->location->fakultas])
-                                ->filter()->implode(', ') ?: 'Universitas',
-                'description' => $facility->description,
-            ],
+            'facility_name' => $facility->name, // teks polos, dipakai lewat textContent
+            'detail_html' => view('reservations.partials.facility-detail', ['facility' => $facility])->render(),
+            'board_html' => view('reservations.partials.board', ['board' => $board])->render(),
+            'start_options_html' => view('reservations.partials.time-options', ['board' => $board, 'field' => 'start'])->render(),
+            'end_options_html' => view('reservations.partials.time-options', ['board' => $board, 'field' => 'end'])->render(),
+            'facility_id' => $facility->id,
             'date'     => $date->toDateString(),
             'minDate'  => $today->toDateString(),
             'maxDate'  => $maxDate->toDateString(),
-            'board'    => $board,
             'closeTime' => config('reservation.close_time'),
         ]);
     }

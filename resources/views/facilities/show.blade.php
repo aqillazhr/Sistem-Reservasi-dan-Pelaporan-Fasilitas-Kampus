@@ -407,6 +407,28 @@
 
             @auth
                 @if (auth()->user()->role === 'pengguna')
+                    {{--
+                        TODO (Orang 2, koordinasi dengan Orang 3):
+                        Ganti tombol <a> di bawah ini jadi modal langsung,
+                        tidak usah pindah halaman ke reservations.create lagi.
+
+                        1. Sertakan partial: reservations.partials.booking-modal
+                           (boleh ditaruh di mana saja di halaman ini, dekat
+                           akhir file juga boleh — lihat komentar TODO kedua
+                           di bagian bawah file ini).
+
+                        2. Ganti tag <a href="..."> di bawah jadi <button
+                           type="button">, dengan onclick yang memanggil
+                           fungsi JS global: openReservationModal($facility->id)
+                           Tidak perlu argumen kedua (tanggal) — defaultnya
+                           otomatis hari ini.
+
+                        Kondisi @auth + role==='pengguna' ini TETAP DIPAKAI,
+                        cuma isi tombolnya yang berubah dari link jadi trigger
+                        modal. Jangan bikin modal/JS baru sendiri di sini —
+                        semua logikanya (fetch jadwal, validasi, submit) sudah
+                        lengkap di partial itu.
+                    --}}
                     <a href="{{ route('pengguna.reservations.create') }}" class="reserve-button">
                         Ajukan Reservasi
                     </a>
@@ -1058,5 +1080,21 @@
 
         });
     </script>
+
+    {{--
+        TODO (Orang 2, koordinasi dengan Orang 3):
+        Tambahkan di sini: @include('reservations.partials.booking-modal')
+
+        Partial itu sudah membawa dialog modal + JS-nya sendiri (fetch
+        jadwal, validasi, popup konfirmasi, submit) DAN style-nya sendiri
+        (reservations._styles) — tidak perlu include tambahan apa pun.
+        Setelah baris include ini ada, fungsi window.openReservationModal(id)
+        otomatis tersedia di halaman ini dan bisa dipanggil dari tombol
+        "Ajukan Reservasi" di atas (lihat komentar TODO di dekat tombol itu).
+
+        Kalau mau ubah tampilan modalnya, edit file partial itu langsung
+        (resources/views/reservations/partials/booking-modal.blade.php),
+        jangan salin/tulis ulang modal baru di file ini.
+    --}}
 
 @endsection
