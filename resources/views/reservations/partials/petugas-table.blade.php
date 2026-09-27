@@ -1,6 +1,7 @@
 @php
     $label = fn ($t) => str_replace(':', '.', $t);
 @endphp
+<div class="table-wrap">
 <table>
     <thead>
         <tr>
@@ -15,7 +16,7 @@
     </thead>
     <tbody>
         @forelse ($reservations as $r)
-            <tr>
+            <tr class="row-click" data-href="{{ route('petugas.reservations.show', $r) }}">
                 <td>
                     <div class="name">{{ $r->user->name }}</div>
                     <div class="muted">{{ ucfirst($r->user->user_type ?? '') }}</div>
@@ -54,6 +55,7 @@
         @endforelse
     </tbody>
 </table>
+</div>
 
 <div class="pager">
     @if ($reservations->previousPageUrl())

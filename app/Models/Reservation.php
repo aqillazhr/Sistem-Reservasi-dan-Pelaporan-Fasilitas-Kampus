@@ -75,6 +75,36 @@ class Reservation extends Model
     // 'cancelled' beneran, jadi hitungan where('status','pending') biasa
     // sudah otomatis benar tanpa perlu scope pengecualian lagi.)
 
+    // approved yang jam selesainya BELUM lewat ("Aktif") vs SUDAH lewat
+    // ("Selesai") — versi query dari isFinished(), dipakai untuk filter tab
+    // di Kelola Reservasi (petugas) & hitungan di hub() (pengguna) supaya
+    // logikanya satu sumber kebenaran, bukan ditulis ulang di tiap tempat.
+    public function scopeApprovedActive(Builder $query): Builder
+    {
+        $now = now();
+
+        return $query->where('status', 'approved')->where(fn ($q) => $q
+            ->whereDate('reservation_date', '>', $now->toDateString())
+            ->orWhere(fn ($q2) => $q2
+                ->whereDate('reservation_date', $now->toDateString())
+                ->where('end_time', '>', $now->format('H:i:s'))
+            )
+        );
+    }
+
+    public function scopeApprovedFinished(Builder $query): Builder
+    {
+        $now = now();
+
+        return $query->where('status', 'approved')->where(fn ($q) => $q
+            ->whereDate('reservation_date', '<', $now->toDateString())
+            ->orWhere(fn ($q2) => $q2
+                ->whereDate('reservation_date', $now->toDateString())
+                ->where('end_time', '<=', $now->format('H:i:s'))
+            )
+        );
+    }
+
     // ------------------------------------------------------------
     // Accessor / helper tampilan & aturan
     // ------------------------------------------------------------

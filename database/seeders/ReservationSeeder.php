@@ -24,10 +24,23 @@ class ReservationSeeder extends Seeder
             if ($f->isNotEmpty()) {
                 $now = now();
                 
-                // 1. Dibatalkan
-                Reservation::factory()->create(['user_id' => $demoUser->id, 'facility_id' => $f->random()->id, 'reservation_date' => $now->clone()->addDays(2)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '12:00', 'status' => 'cancelled', 'cancellation_reason' => 'Batal karena jadwal kuliah pengganti.', 'purpose' => 'Rapat organisasi mahasiswa']);
-                // 2. Ditolak
-                Reservation::factory()->create(['user_id' => $demoUser->id, 'facility_id' => $f->random()->id, 'reservation_date' => $now->clone()->addDays(4)->format('Y-m-d'), 'start_time' => '08:00', 'end_time' => '10:00', 'status' => 'rejected', 'cancellation_reason' => 'Fasilitas sedang dalam perbaikan dadakan.', 'purpose' => 'Seminar proposal skripsi']);
+                // 1. Dibatalkan (oleh pengguna sendiri -> cancellation_reason kosong,
+                //    alasan tercatat di status_logs.note, sama seperti cancelByOwner()).
+                $dibatalkan = Reservation::factory()->create(['user_id' => $demoUser->id, 'facility_id' => $f->random()->id, 'reservation_date' => $now->clone()->addDays(2)->format('Y-m-d'), 'start_time' => '10:00', 'end_time' => '12:00', 'status' => 'cancelled', 'purpose' => 'Rapat organisasi mahasiswa']);
+                StatusLog::create([
+                    'reservation_id' => $dibatalkan->id, 'changed_by_user_id' => $demoUser->id,
+                    'old_status' => 'pending', 'new_status' => 'cancelled',
+                    'note' => 'Batal karena jadwal kuliah pengganti.',
+                ]);
+                // 2. Ditolak (alasan WAJIB tercatat di status_logs.note, BUKAN
+                //    cancellation_reason -- kolom itu khusus pembatalan, lihat
+                //    ReservationService::rejectByOfficer()).
+                $ditolak = Reservation::factory()->create(['user_id' => $demoUser->id, 'facility_id' => $f->random()->id, 'reservation_date' => $now->clone()->addDays(4)->format('Y-m-d'), 'start_time' => '08:00', 'end_time' => '10:00', 'status' => 'rejected', 'purpose' => 'Seminar proposal skripsi']);
+                StatusLog::create([
+                    'reservation_id' => $ditolak->id, 'changed_by_user_id' => $petugas?->id ?? $demoUser->id,
+                    'old_status' => 'pending', 'new_status' => 'rejected',
+                    'note' => 'Fasilitas sedang dalam perbaikan dadakan.',
+                ]);
                 // 3. Selesai
                 Reservation::factory()->create(['user_id' => $demoUser->id, 'facility_id' => $f->random()->id, 'reservation_date' => $now->clone()->subDays(3)->format('Y-m-d'), 'start_time' => '13:00', 'end_time' => '15:00', 'status' => 'approved', 'purpose' => 'Latihan bulu tangkis']);
                 // 4. Aktif
@@ -86,8 +99,20 @@ class ReservationSeeder extends Seeder
                 ]);
             });
 
-        // Cancelled (dibatalkan oleh pemesan)
-        Reservation::factory()->cancelled()->past()->count(5)->create();
+        // Cancelled (dibatalkan petugas -> cancellation_reason terisi lewat factory,
+        // status_logs.note-nya mengikuti alasan yang sama seperti cancelByOfficer()).
+        Reservation::factory()->cancelled()->past()->count(5)->create()
+            ->each(function (Reservation $r) use ($petugas) {
+                StatusLog::create([
+                    'reservation_id'     => $r->id,
+                    'report_id'          => null,
+                    'facility_id'        => null,
+                    'changed_by_user_id' => $petugas->id,
+                    'old_status'         => 'approved',
+                    'new_status'         => 'cancelled',
+                    'note'               => $r->cancellation_reason,
+                ]);
+            });
 
         $total = 10 + 8 + 15 + 5 + 5;
         $this->command->info("Reservation: {$total} reservasi berhasil di-seed.");

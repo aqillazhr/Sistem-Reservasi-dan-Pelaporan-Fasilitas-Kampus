@@ -4,7 +4,7 @@
 
 @section('content')
     @php
-        $tabs = ['menunggu' => 'Menunggu', 'disetujui' => 'Disetujui', 'ditolak' => 'Ditolak', 'dibatalkan' => 'Dibatalkan'];
+        $tabs = ['semua' => 'Semua', 'menunggu' => 'Menunggu', 'aktif' => 'Aktif', 'selesai' => 'Selesai', 'ditolak' => 'Ditolak', 'dibatalkan' => 'Dibatalkan'];
         $label = fn ($t) => str_replace(':', '.', $t);
     @endphp
     <style>
@@ -19,23 +19,33 @@
 
         .kr .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .kr .tabs a {
-            padding: 7px 18px; border-radius: 999px; background: #FBF7FF; color: #270F45;
-            text-decoration: none; font-size: 14px; font-weight: 600; border: 1px solid #BD93F8;
+            padding: 7px 18px; border-radius: 999px; background: #D5BBFB; color: #fff;
+            text-decoration: none; font-size: 15px; font-weight: 700; border: none;
+            opacity: .65; transition: opacity .15s;
         }
-        .kr .tabs a.on { background: #9747FF; color: #fff; border-color: #9747FF; }
+        .kr .tabs a:hover { opacity: .85; }
+        .kr .tabs a.on { background: #501E91; opacity: 1; }
 
+        .kr .table-wrap {
+            background: #fff;
+            border: 1px solid #9747ff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
         .kr table { width: 100%; border-collapse: collapse; background: #fff; }
         .kr thead th {
-            background: #D5BBFB; color: #000; font-size: 16px; font-weight: 700; text-align: left;
-            padding: 14px 16px; border-right: 2px solid #fff;
+            background: #BD93F8; color: #000; font-size: 16px; font-weight: 700; text-align: left;
+            padding: 18px 16px; border-right: 1px solid #9747ff;
         }
         .kr thead th:last-child { border-right: none; }
-        .kr tbody td { 
-            padding: 14px 16px; border-bottom: 1px solid #D5BBFB; border-right: 1px solid #D5BBFB; 
-            vertical-align: top; font-size: 14px; 
+        .kr tbody td {
+            padding: 16px; border-bottom: 1px solid #BD93F8; border-right: 1px solid #D5BBFB;
+            vertical-align: top; font-size: 14px;
         }
         .kr tbody td:last-child { border-right: none; }
         .kr tbody tr:last-child td { border-bottom: none; }
+        .kr tbody tr.row-click { cursor: pointer; }
+        .kr tbody tr.row-click:hover { background: #fbf7ff; }
         .kr .name { font-weight: 700; font-size: 14px; color: #000; }
         .kr .muted { color: #525151; font-size: 12px; margin-top: 2px; }
         .kr .badge { display: inline-block; padding: 4px 12px; border-radius: 5px; font-size: 12px; font-weight: 600; }
@@ -81,6 +91,7 @@
     (function () {
         var container = document.getElementById('tableContainer');
         var tabs = document.querySelectorAll('.kr .tabs a');
+        var statusInput = document.querySelector('.kr .search-bar input[name="status"]');
         var currentController = null;
 
         tabs.forEach(function (t) {
@@ -91,6 +102,11 @@
                 // Update active tab style
                 tabs.forEach(function (tab) { tab.classList.remove('on'); });
                 this.classList.add('on');
+
+                // Form pencarian tadinya cuma tahu tab aktif pas halaman ini di-load
+                // penuh terakhir kali, jadi kalau ganti tab lewat AJAX lalu langsung
+                // cari, hasilnya nyasar ke tab lama. Sinkronkan field tersembunyinya.
+                if (statusInput) statusInput.value = new URL(url, window.location.origin).searchParams.get('status') || 'menunggu';
 
                 // Cancel previous request if any
                 if (currentController) currentController.abort();
@@ -128,6 +144,13 @@
                     window.history.replaceState(null, '', url);
                 });
             }
+        });
+
+        // Baris tabel bisa diklik untuk lihat detail (kecuali klik di tombol/form aksi).
+        container.addEventListener('click', function (e) {
+            if (e.target.closest('a, button, form')) return;
+            var row = e.target.closest('tr.row-click');
+            if (row) window.location.href = row.dataset.href;
         });
     })();
     </script>

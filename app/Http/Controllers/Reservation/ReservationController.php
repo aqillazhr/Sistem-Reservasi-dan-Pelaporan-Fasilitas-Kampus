@@ -32,7 +32,6 @@ class ReservationController extends Controller
     public function hub(Request $request)
     {
         $userId = $request->user()->id;
-        $now    = now();
 
         $base = Reservation::where('user_id', $userId);
 
@@ -42,30 +41,10 @@ class ReservationController extends Controller
             ->groupBy('status')
             ->pluck('total', 'status');
 
-        // Aktif = approved yang belum selesai
-        $aktif = (clone $base)->where('status', 'approved')
-            ->where(fn ($q) => $q
-                ->whereDate('reservation_date', '>', $now->toDateString())
-                ->orWhere(fn ($q2) => $q2
-                    ->whereDate('reservation_date', $now->toDateString())
-                    ->where('end_time', '>', $now->format('H:i:s'))
-                )
-            )->count();
-
-        // Selesai = approved yang sudah lewat
-        $selesai = (clone $base)->where('status', 'approved')
-            ->where(fn ($q) => $q
-                ->whereDate('reservation_date', '<', $now->toDateString())
-                ->orWhere(fn ($q2) => $q2
-                    ->whereDate('reservation_date', $now->toDateString())
-                    ->where('end_time', '<=', $now->format('H:i:s'))
-                )
-            )->count();
-
         $counts = [
             'pending'    => $byStatus['pending']   ?? 0,
-            'aktif'      => $aktif,
-            'selesai'    => $selesai,
+            'aktif'      => (clone $base)->approvedActive()->count(),
+            'selesai'    => (clone $base)->approvedFinished()->count(),
             'rejected'   => $byStatus['rejected']  ?? 0,
             'cancelled'  => $byStatus['cancelled'] ?? 0,
         ];
@@ -79,9 +58,8 @@ class ReservationController extends Controller
         $this->service->autoCancelExpired($request->user()->id);
 
         $reservations = $request->user()->reservations()
-            ->with('facility.location')
-            ->orderByDesc('reservation_date')
-            ->orderByDesc('start_time')
+            ->with(['facility.location', 'statusLogs'])
+            ->orderByDesc('updated_at')
             ->paginate(50)
             ->withQueryString(); //kalau user berpindah ke halaman 2 atau 3, 
                                  //parameter filter di URL-nya tidak hilang
@@ -250,14 +228,18 @@ class ReservationController extends Controller
         // (lintas pengguna) sebelum antrian ini ditampilkan ke petugas.
         $this->service->autoCancelExpired();
 
-        $validTabs = ['menunggu' => 'pending', 'disetujui' => 'approved', 'ditolak' => 'rejected', 'dibatalkan' => 'cancelled'];
+        $validTabs = ['semua', 'menunggu', 'aktif', 'selesai', 'ditolak', 'dibatalkan'];
         $tab = $request->query('status', 'menunggu');
-        $tab = array_key_exists($tab, $validTabs) ? $tab : 'menunggu';
+        $tab = in_array($tab, $validTabs, true) ? $tab : 'menunggu';
         $q = trim((string) $request->query('q', ''));
 
         $reservations = Reservation::query()
             ->with(['user', 'facility.location'])
-            ->where('status', $validTabs[$tab])
+            ->when($tab === 'menunggu', fn ($query) => $query->where('status', 'pending'))
+            ->when($tab === 'aktif', fn ($query) => $query->approvedActive())
+            ->when($tab === 'selesai', fn ($query) => $query->approvedFinished())
+            ->when($tab === 'ditolak', fn ($query) => $query->where('status', 'rejected'))
+            ->when($tab === 'dibatalkan', fn ($query) => $query->where('status', 'cancelled'))
             ->when($q !== '', function ($query) use ($q) {
                 $like = '%'.addcslashes($q, '%_\\').'%';
                 $query->where(function ($sub) use ($like) {
@@ -265,7 +247,7 @@ class ReservationController extends Controller
                         ->orWhereHas('facility', fn ($f) => $f->where('name', 'like', $like));
                 });
             })
-            ->orderByDesc('created_at')
+            ->orderByDesc('updated_at')
             ->paginate(15)
             ->withQueryString();
 
@@ -286,6 +268,15 @@ class ReservationController extends Controller
     // Dashboard petugas: dipanggil dari DashboardController::petugas() lewat
     // component <x-dashboard.petugas-reservation-queue />, bukan lewat route
     // terpisah — lihat app/View/Components/Dashboard/PetugasReservationQueue.php
+
+    // Detail reservasi sisi petugas (baris tabel Kelola Reservasi bisa diklik
+    // supaya tujuan/keterangan yang panjang tidak perlu dipotong di tabel).
+    public function petugasShow(Request $request, Reservation $reservation)
+    {
+        $reservation->load(['user', 'facility.location', 'statusLogs.changedBy']);
+
+        return view('reservations.petugas-show', compact('reservation'));
+    }
 
     public function approve(Request $request, Reservation $reservation)
     {

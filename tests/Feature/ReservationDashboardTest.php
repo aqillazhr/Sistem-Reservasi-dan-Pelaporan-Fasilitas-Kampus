@@ -107,7 +107,10 @@ class ReservationDashboardTest extends TestCase
     public function test_kelola_reservasi_tab_filter_menampilkan_status_yang_sesuai(): void
     {
         $this->makeReservation(['status' => 'pending']);
+        // Aktif: approved, tanggalnya (25 Sep) belum lewat dari "sekarang" (24 Sep 08.00).
         $this->makeReservation(['status' => 'approved', 'start_time' => '11:00', 'end_time' => '12:00']);
+        // Selesai: approved, tanggal+jamnya (23 Sep) sudah lewat.
+        $this->makeReservation(['status' => 'approved', 'reservation_date' => '2026-09-23', 'start_time' => '11:00', 'end_time' => '12:00']);
         $this->makeReservation(['status' => 'rejected', 'start_time' => '13:00', 'end_time' => '14:00']);
         $this->makeReservation(['status' => 'cancelled', 'start_time' => '15:00', 'end_time' => '16:00']);
 
@@ -116,10 +119,20 @@ class ReservationDashboardTest extends TestCase
             ->assertOk();
         $pending->assertViewHas('reservations', fn ($rows) => $rows->total() === 1);
 
-        $approved = $this->actingAs($this->officer)
-            ->get(route('petugas.reservations.index', ['status' => 'disetujui']))
+        $aktif = $this->actingAs($this->officer)
+            ->get(route('petugas.reservations.index', ['status' => 'aktif']))
             ->assertOk();
-        $approved->assertViewHas('reservations', fn ($rows) => $rows->total() === 1);
+        $aktif->assertViewHas('reservations', fn ($rows) => $rows->total() === 1);
+
+        $selesai = $this->actingAs($this->officer)
+            ->get(route('petugas.reservations.index', ['status' => 'selesai']))
+            ->assertOk();
+        $selesai->assertViewHas('reservations', fn ($rows) => $rows->total() === 1);
+
+        $semua = $this->actingAs($this->officer)
+            ->get(route('petugas.reservations.index', ['status' => 'semua']))
+            ->assertOk();
+        $semua->assertViewHas('reservations', fn ($rows) => $rows->total() === 5);
     }
 
     public function test_kelola_reservasi_pencarian_berdasarkan_nama_pengguna_dan_fasilitas(): void

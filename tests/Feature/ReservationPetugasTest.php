@@ -193,6 +193,30 @@ class ReservationPetugasTest extends TestCase
     }
 
     // ==================================================================
+    // Detail reservasi sisi petugas (baris tabel Kelola Reservasi bisa diklik).
+    // ==================================================================
+
+    public function test_petugas_bisa_lihat_detail_reservasi(): void
+    {
+        $r = $this->makeReservation(['purpose' => 'Tujuan detail yang cukup panjang untuk diuji']);
+
+        $this->actingAs($this->officer)
+            ->get(route('petugas.reservations.show', $r))
+            ->assertOk()
+            ->assertSee('Tujuan detail yang cukup panjang untuk diuji')
+            ->assertSee($this->pengguna->name);
+    }
+
+    public function test_pengguna_tidak_bisa_akses_detail_reservasi_petugas(): void
+    {
+        $r = $this->makeReservation();
+
+        $this->actingAs($this->pengguna)
+            ->get(route('petugas.reservations.show', $r))
+            ->assertForbidden();
+    }
+
+    // ==================================================================
     // Auto-cancel reservasi pending yang lewat waktu booking (bukan cron —
     // dieksekusi "on the fly" di titik baca yang relevan).
     // ==================================================================
