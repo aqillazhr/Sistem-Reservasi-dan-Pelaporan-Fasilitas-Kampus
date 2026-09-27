@@ -20,13 +20,17 @@
                     <form method="POST" action="{{ route('petugas.reservations.approve', $r) }}"
                           class="form-confirm" data-confirm-title="Setujui Reservasi" data-confirm-msg="Apakah Anda yakin ingin menyetujui reservasi {{ $r->facility->name }} ini?" style="margin: 0;">
                         @csrf
-                        <button type="submit" title="Setuju" style="border:0; cursor:pointer; width: 36px; height: 32px; border-radius: 4px; background: #E6F4EA; color: #1E8E3E; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center;">✓</button>
+                        <button type="submit" title="Setuju" style="border:0; cursor:pointer; width: 36px; height: 36px; border-radius: 8px; background: #C3FFC3; display: flex; align-items: center; justify-content: center;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1E8E3E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </button>
                     </form>
                     <button type="button" title="Tolak"
                             data-reason-url="{{ route('petugas.reservations.reject', $r) }}"
                             data-reason-field="note"
                             data-reason-title="Tolak reservasi {{ $r->facility->name }}?"
-                            style="border:0; cursor:pointer; width: 36px; height: 32px; border-radius: 4px; background: #FCE8E6; color: #D93025; font-size: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center;">✕</button>
+                            style="border:0; cursor:pointer; width: 36px; height: 36px; border-radius: 8px; background: #FF8C8C; display: flex; align-items: center; justify-content: center;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7A271A" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
                 </div>
             </div>
         </div>
