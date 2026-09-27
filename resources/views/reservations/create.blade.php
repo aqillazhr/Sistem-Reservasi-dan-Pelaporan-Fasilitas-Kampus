@@ -174,7 +174,7 @@
                     <span><i style="background:var(--free)"></i>Tersedia</span>
                     <span><i style="background:var(--wait)"></i>Menunggu konfirmasi</span>
                     <span><i style="background:var(--busy)"></i>Terisi</span>
-                    <span><i style="background:var(--past)"></i>Sudah lewat</span>
+                    <span><i style="background:var(--past)"></i>Sudah lewat / kurang dari H-{{ (int) ceil(config('reservation.min_advance_hours') / 24) }}</span>
                 </div>
                 <div class="board" id="board">
                     <p class="muted">Memuat jadwal...</p>
@@ -229,6 +229,7 @@
         let currentFacilityId = null;
         let currentBoardData = [];
         let closeTimeStr = "20:00:00"; // default, di-overwrite saat fetch board
+        const minAdvanceHours = {{ (int) config('reservation.min_advance_hours') }};
         
         const fList = document.getElementById('facilityList');
         const fPager = document.getElementById('facilityPager');
@@ -390,6 +391,7 @@
                 if(b.state === 'pending') stateLabel = '<br><small>menunggu</small>';
                 if(b.state === 'approved') stateLabel = '<br><small>terisi</small>';
                 if(b.state === 'past') stateLabel = '<br><small>lewat</small>';
+                if(b.state === 'toosoon') stateLabel = '<br><small>min. H-' + Math.ceil(minAdvanceHours / 24) + '</small>';
                 
                 btn.innerHTML = `${formatLabel(b.start)}–${formatLabel(b.end)}${stateLabel}`;
                 

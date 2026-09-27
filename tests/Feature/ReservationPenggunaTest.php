@@ -97,8 +97,8 @@ class ReservationPenggunaTest extends TestCase
 
     public function test_tepat_di_batas_jam_operasional_diterima(): void
     {
-        $this->book(['start_time' => '07:00', 'end_time' => '07:30'])->assertSessionHasNoErrors();
-        $this->book(['start_time' => '19:30', 'end_time' => '20:00'])->assertSessionHasNoErrors();
+        $this->book(['reservation_date' => '2026-09-26', 'start_time' => '07:00', 'end_time' => '07:30'])->assertSessionHasNoErrors();
+        $this->book(['reservation_date' => '2026-09-26', 'start_time' => '19:30', 'end_time' => '20:00'])->assertSessionHasNoErrors();
         $this->assertDatabaseCount('reservations', 2);
     }
 
@@ -197,5 +197,81 @@ class ReservationPenggunaTest extends TestCase
         $res->assertJsonPath('slots.0.state', 'pending')->assertJsonPath('slots.0.start_time', '09:00');
         $this->assertStringNotContainsString('RAHASIA-TUJUAN', $res->getContent());
         $this->assertStringNotContainsString('user_id', $res->getContent());
+    }
+
+    // ==================================================================
+    // REVISI 2: reservasi baru minimal H-1 (min_advance_hours) sebelum jam
+    // mulai — sama seperti batas pembatalan. "Sekarang" di test ini selalu
+    // 2026-09-24 08:00 (lihat setUp), jadi 2026-09-25 08:00 persis 24 jam
+    // dari sekarang dan 2026-09-25 07:00 hanya 23 jam dari sekarang.
+    // ==================================================================
+
+    public function test_kurang_dari_h_min_1_dari_sekarang_ditolak(): void
+    {
+        $this->book(['reservation_date' => '2026-09-25', 'start_time' => '07:00', 'end_time' => '08:00'])
+            ->assertSessionHasErrors('start_time');
+
+        $this->assertDatabaseCount('reservations', 0);
+    }
+
+    public function test_tepat_di_batas_h_min_1_diterima(): void
+    {
+        $this->book(['reservation_date' => '2026-09-25', 'start_time' => '08:00', 'end_time' => '09:00'])
+            ->assertSessionHasNoErrors();
+
+        $this->assertDatabaseCount('reservations', 1);
+    }
+
+    public function test_papan_slot_menandai_state_toosoon_sebelum_batas_h_min_1(): void
+    {
+        $board = app(\App\Services\ReservationService::class)->slotBoard($this->facility->id, '2026-09-25');
+        $byStart = collect($board)->keyBy('start');
+
+        $this->assertSame('toosoon', $byStart['07:00']['state']); // 23 jam dari sekarang
+        $this->assertSame('free', $byStart['09:00']['state']);    // 25 jam dari sekarang
+    }
+
+    // ==================================================================
+    // REVISI 3: reservasi pending yang jam mulainya sudah lewat tapi belum
+    // diproses petugas otomatis dianggap "Kedaluwarsa" (label saja, bukan
+    // status baru di DB) DAN tidak lagi mengunci kuota max_pending_per_user.
+    // ==================================================================
+
+    public function test_pending_yang_sudah_lewat_waktunya_berlabel_kedaluwarsa(): void
+    {
+        // Dibuat "kemarin" untuk slot yang sudah lewat, tanpa pernah diproses petugas.
+        $r = $this->makeReservation(['reservation_date' => '2026-09-23', 'start_time' => '09:00', 'end_time' => '10:00']);
+
+        $this->assertTrue($r->isExpired());
+        $this->assertSame('Kedaluwarsa', $r->status_label);
+        $this->assertSame('kedaluwarsa', $r->status_badge_class);
+        $this->assertSame('pending', $r->status); // DB tidak berubah, murni label tampilan
+    }
+
+    public function test_pending_kedaluwarsa_tidak_lagi_mengunci_kuota_max_pending(): void
+    {
+        // 1 pending yang sudah kedaluwarsa (kemarin, tidak pernah diproses)...
+        $this->makeReservation(['reservation_date' => '2026-09-23', 'start_time' => '09:00', 'end_time' => '10:00']);
+        // ...+ 9 pending aktif (besok, belum lewat) = 10 baris pending di DB,
+        // tapi cuma 9 yang masih "aktif" mengunci kuota.
+        foreach (range(0, 8) as $i) {
+            $this->makeReservation(['start_time' => sprintf('%02d:00', 10 + $i), 'end_time' => sprintf('%02d:30', 10 + $i)]);
+        }
+
+        $this->assertSame(10, Reservation::where('status', 'pending')->count());
+
+        // Kuota masih longgar (9 aktif < 10) -> pengajuan baru harus tetap diterima.
+        $this->book(['start_time' => '19:00', 'end_time' => '19:30'])->assertSessionHasNoErrors();
+    }
+
+    public function test_pending_yang_belum_kedaluwarsa_tetap_mengunci_kuota(): void
+    {
+        // Sanity check pembanding: 10 pending yang SEMUANYA masih aktif tetap memblokir,
+        // supaya perubahan di atas tidak diam-diam melonggarkan aturan kuota yang lama.
+        foreach (range(0, 9) as $i) {
+            $this->makeReservation(['start_time' => sprintf('%02d:00', 7 + $i), 'end_time' => sprintf('%02d:30', 7 + $i)]);
+        }
+
+        $this->book(['start_time' => '18:00', 'end_time' => '19:00'])->assertSessionHasErrors('facility_id');
     }
 }

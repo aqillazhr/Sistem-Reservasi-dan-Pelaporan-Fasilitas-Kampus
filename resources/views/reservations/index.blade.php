@@ -69,7 +69,7 @@
                             {{ $r->start_short }}–{{ $r->end_short }}
                         </div>
                     </div>
-                    <span class="badge {{ $r->isFinished() ? 'selesai' : $r->status }}">{{ $r->status_label }}</span>
+                    <span class="badge {{ $r->status_badge_class }}">{{ $r->status_label }}</span>
                 </a>
             @empty
                 <div class="card" id="emptyCard">

@@ -15,6 +15,11 @@ return [
     // Reservasi hanya boleh diajukan sampai N hari ke depan (hari ini s/d hari ini + N).
     'max_days_ahead' => 7,
 
+    // Reservasi BARU hanya boleh diajukan minimal N jam sebelum jam mulai (H-1 = 24 jam).
+    // Sengaja disamakan dengan cancel_min_hours: kalau sudah terlalu mepet untuk diajukan,
+    // otomatis juga berarti sudah terlalu mepet untuk dibatalkan lagi.
+    'min_advance_hours' => 24,
+
     // Pembatalan oleh pengguna hanya boleh sampai N jam sebelum jam mulai (H-1 = 24 jam).
     'cancel_min_hours' => 24,
 

@@ -36,7 +36,7 @@ class ReservationService
                 ]);
             }
 
-            $pending = Reservation::where('user_id', $user->id)->where('status', 'pending')->count();
+            $pending = Reservation::where('user_id', $user->id)->activePending()->count();
             $maxPending = (int) config('reservation.max_pending_per_user');
 
             if ($pending >= $maxPending) {
@@ -158,6 +158,7 @@ class ReservationService
         $cursor = Carbon::parse($date.' '.config('reservation.open_time'), $tz);
         $close = Carbon::parse($date.' '.config('reservation.close_time'), $tz);
         $occupied = $this->occupiedSlots($facilityId, $date, 1);
+        $tooSoonBefore = now()->addHours((int) config('reservation.min_advance_hours'));
         $board = [];
 
         while ($cursor->lt($close)) {
@@ -174,6 +175,12 @@ class ReservationService
                         $state = $o->status === 'approved' ? 'approved' : 'pending';
                         break;
                     }
+                }
+
+                // Belum lewat & belum terisi, tapi kurang dari batas H-1 (min_advance_hours)
+                // dari sekarang -> tetap tidak boleh diajukan (lihat StoreReservationRequest).
+                if ($state === 'free' && $cursor->lt($tooSoonBefore)) {
+                    $state = 'toosoon';
                 }
             }
 

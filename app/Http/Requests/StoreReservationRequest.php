@@ -82,9 +82,14 @@ class StoreReservationRequest extends FormRequest
 
             // Jam mulai tidak boleh sudah lewat kalau reservasinya hari ini
             $startsAt = Carbon::parse($this->input('reservation_date').' '.$start, config('app.timezone'));
+            $minAdvanceHours = (int) config('reservation.min_advance_hours');
 
             if ($startsAt->lessThanOrEqualTo(now())) {
                 $validator->errors()->add('start_time', 'Jam mulai sudah lewat. Pilih waktu yang akan datang.');
+            } elseif (now()->addHours($minAdvanceHours)->greaterThan($startsAt)) {
+                // Sama seperti batas pembatalan: kalau sudah terlalu mepet untuk
+                // diajukan (< H-1), otomatis juga tidak akan sempat diproses petugas.
+                $validator->errors()->add('start_time', "Reservasi harus diajukan paling lambat {$minAdvanceHours} jam sebelum jam mulai.");
             }
         }];
     }
