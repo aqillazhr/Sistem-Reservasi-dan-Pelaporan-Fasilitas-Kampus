@@ -197,6 +197,29 @@ class ReservationPenggunaTest extends TestCase
         $this->book([], $this->makeUser('petugas'))->assertForbidden();
     }
 
+    public function test_tujuan_kurang_dari_5_atau_lebih_dari_1000_karakter_ditolak(): void
+    {
+        $this->book(['purpose' => 'abc'])->assertSessionHasErrors('purpose');
+        $this->book(['purpose' => str_repeat('a', 1001)])->assertSessionHasErrors('purpose');
+        $this->assertDatabaseCount('reservations', 0);
+    }
+
+    public function test_jam_selesai_sama_dengan_atau_sebelum_jam_mulai_ditolak(): void
+    {
+        $this->book(['start_time' => '09:00', 'end_time' => '09:00'])->assertSessionHasErrors('end_time');
+        $this->book(['start_time' => '09:00', 'end_time' => '08:30'])->assertSessionHasErrors('end_time');
+        $this->assertDatabaseCount('reservations', 0);
+    }
+
+    public function test_fasilitas_tidak_ada_atau_sudah_dihapus_ditolak(): void
+    {
+        $this->book(['facility_id' => 999999])->assertSessionHasErrors('facility_id');
+
+        $this->facility->delete(); // soft delete
+        $this->book()->assertSessionHasErrors('facility_id');
+        $this->assertDatabaseCount('reservations', 0);
+    }
+
     public function test_endpoint_slot_publik_tidak_membocorkan_pemohon_dan_tujuan(): void
     {
         $this->makeReservation(['purpose' => 'RAHASIA-TUJUAN']);
