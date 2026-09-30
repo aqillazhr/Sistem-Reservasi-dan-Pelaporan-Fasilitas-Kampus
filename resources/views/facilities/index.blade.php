@@ -20,8 +20,8 @@
         }
 
         /* =========================
-           FILTER
-        ========================= */
+                   FILTER
+                ========================= */
         .filter-box {
             background: white;
             border-radius: 12px;
@@ -117,8 +117,8 @@
         }
 
         /* =========================
-           HASIL
-        ========================= */
+                   HASIL
+                ========================= */
         .search-page hr {
             border: none;
             border-top: 1px solid #e0d5ee;
@@ -188,8 +188,8 @@
         }
 
         /* =========================
-           RESPONSIVE
-        ========================= */
+                   RESPONSIVE
+                ========================= */
         @media (max-width: 1000px) {
             .filter-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -225,7 +225,7 @@
         <h1>Hasil Pencarian</h1>
 
 
-    {{-- =========================
+        {{-- =========================
          FILTER
     ========================= --}}
 
@@ -315,6 +315,31 @@
 
                     </div>
 
+                    {{-- Ketersediaan --}}
+                    <div class="filter-group">
+
+                        <label for="availability">
+                            Ketersediaan
+                        </label>
+
+                        <select name="availability" id="availability">
+
+                            <option value="">
+                                Semua
+                            </option>
+
+                            <option value="available" @selected($availability === 'available')>
+                                Tersedia
+                            </option>
+
+                            <option value="unavailable" @selected($availability === 'unavailable')>
+                                Tidak tersedia
+                            </option>
+
+                        </select>
+
+                    </div>
+
                 </div>
 
 
@@ -341,7 +366,7 @@
 
 
 
-        @if ($search || $typeId || $status || $capacityMin || $capacityMax)
+        @if ($search || $typeId || $status || $capacityMin || $capacityMax || $availability)
 
 
             <div class="result-info">
@@ -434,9 +459,15 @@
 
                         <div>
                             <span>Ketersediaan</span>
-
+                            
                             <strong>
-                                Tersedia
+                                @if ($facility->status !== 'aktif')
+                                    Tidak tersedia
+                                @elseif ($facility->reservations->isNotEmpty())
+                                    Tidak tersedia
+                                @else
+                                    Tersedia
+                                @endif
                             </strong>
                         </div>
 
