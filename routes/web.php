@@ -106,9 +106,9 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
     Route::post('/reservasi/{reservation}/batal', [ReservationController::class, 'petugasCancel'])->name('reservations.petugas-cancel');
 
     // Laporan (Orang 4)
+    Route::get('/laporan', [ReportController::class, 'petugasIndex'])->name('reports.index');
+    Route::get('/laporan/{report}', [ReportController::class, 'petugasShow'])->whereNumber('report')->name('reports.show');
     Route::patch('/laporan/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.update-status');
-    Route::post('/laporan/{report}/dalam-perbaikan', [ReportController::class, 'markUnderRepair'])->name('reports.mark-under-repair');
-    Route::post('/laporan/{report}/selesai-perbaikan', [ReportController::class, 'markFixed'])->name('reports.mark-fixed');
 });
 
 // ==========================================================

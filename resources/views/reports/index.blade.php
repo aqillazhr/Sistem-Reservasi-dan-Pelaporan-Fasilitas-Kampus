@@ -46,39 +46,68 @@
 
     .table-wrap {
         width: 100%;
-        overflow-x: auto;
-        background: #ffffff;
-        border: 1px solid #bd93f8;
-        border-radius: 6px;
+        background: #fff;
+        border: 1px solid #9747ff;
+        border-radius: 10px;
+        overflow: hidden;
     }
 
     .report-table {
         width: 100%;
         border-collapse: collapse;
-        min-width: 900px;
+        table-layout: fixed;
     }
 
     .report-table th {
-        background: #bd93f8;
-        color: #260f45;
-        padding: 10px 8px;
-        font-size: 10px;
+        background: #BD93F8;
+        color: #000;
+        padding: 14px 12px;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.3;
         text-align: left;
+        vertical-align: middle;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        border-right: 1px solid #9747ff;
     }
 
     .report-table td {
-        padding: 11px 8px;
-        border-top: 1px solid #e2d3f8;
-        font-size: 10px;
+        padding: 14px 12px;
+        border-top: 1px solid #D9C3F4;
+        border-right: 1px solid #D9C3F4;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 15px;
+        font-weight: 400;
+        line-height: 1.45;
+        color: #222;
         vertical-align: top;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    .report-table td:last-child {
+        white-space: normal;
+        overflow: hidden;
+    }
+
+    .facility-name {
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #222222;
     }
 
     .status {
         display: inline-block;
-        padding: 4px 9px;
-        border-radius: 4px;
-        font-size: 9px;
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 13px;
         font-weight: 700;
+        white-space: nowrap;
     }
 
     .status-baru {
@@ -102,8 +131,10 @@
     }
 
     .detail-link {
-        color: #9747ff;
-        font-weight: 700;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        color: #9747FF;
         text-decoration: underline;
     }
 
@@ -111,6 +142,26 @@
         padding: 40px;
         text-align: center;
         color: #76677f;
+    }
+
+    @media (max-width: 1000px) {
+        .report-table th,
+        .report-table td {
+            padding: 11px 9px;
+        }
+
+        .report-table th {
+            font-size: 15px;
+        }
+
+        .report-table td {
+            font-size: 15px;
+        }
+
+        .status {
+            font-size: 12px;
+            padding: 5px 8px;
+        }
     }
 </style>
 
@@ -143,39 +194,13 @@
             <thead>
 
                 <tr>
-
-                    <th>
-                        Tgl. Pelaporan
-                    </th>
-
-                    <th>
-                        Fasilitas
-                    </th>
-
-                    <th>
-                        Tipe
-                    </th>
-
-                    <th>
-                        Kategori Kerusakan
-                    </th>
-
-                    <th>
-                        Deskripsi
-                    </th>
-
-                    <th>
-                        Dokumentasi
-                    </th>
-
-                    <th>
-                        Status
-                    </th>
-
-                    <th>
-                        Aksi
-                    </th>
-
+                    <th style="width: 13%;">Tgl. Pelaporan</th>
+                    <th style="width: 20%;">Fasilitas</th>
+                    <th style="width: 10%;">Tipe</th>
+                    <th style="width: 14%;">Kategori Kerusakan</th>
+                    <th style="width: 18%;">Deskripsi</th>
+                    <th style="width: 12%;">Dokumentasi</th>
+                    <th style="width: 13%;">Status</th>
                 </tr>
 
             </thead>
@@ -187,7 +212,7 @@
                     <tr>
 
                         <td>
-                            {{ $report->created_at->format('d M Y') }}
+                            {{ $report->created_at->locale('id')->isoFormat('D MMMM YYYY') }}
                         </td>
 
                         <td>

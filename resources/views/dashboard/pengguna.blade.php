@@ -1,10 +1,15 @@
-{{-- resources/views/dashboard/pengguna.blade.php --}}
 @extends('layouts.dashboard')
 
 @section('title', 'Dashboard Saya')
 
 @push('styles')
 <style>
+    .dashboard-summary-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 24px;
+    }
+    
     .dashboard-section-title {
         font-family: 'Sora', Helvetica, sans-serif;
         font-weight: 700;
@@ -73,16 +78,17 @@
 @section('content')
     <h1>Dashboard Saya</h1>
 
-    {{-- Reservasi (Orang 3) --}}
-    <x-dashboard.reservation-summary />
+    <div class="dashboard-summary-row">
+        {{-- Reservasi (Orang 3) --}}
+        <x-dashboard.reservation-summary />
 
-    {{-- Laporan (Orang 4) --}}
-    <x-dashboard.report-summary
-        :reports="$reports"
-        :new-reports="$newReports"
-        :processing-reports="$processingReports"
-        :total-reports="$totalReports"
-    />
+        {{-- Laporan (Orang 4) --}}
+        <x-dashboard.report-summary
+            :reports="$reports"
+            :new-reports="$newReports"
+            :processing-reports="$processingReports"
+            :total-reports="$totalReports"/>
+    </div>
 
     <h2 class="dashboard-section-title">Semua Fasilitas</h2>
 
