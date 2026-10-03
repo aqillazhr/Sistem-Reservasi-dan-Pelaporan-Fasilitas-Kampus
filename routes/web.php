@@ -130,4 +130,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Fasilitas (Orang 2)
     Route::post('/fasilitas', [FacilityController::class, 'store'])->name('facilities.store');
     Route::put('/fasilitas/{facility}', [FacilityController::class, 'update'])->name('facilities.update');
+
+    // Rekap dan Ekspor (Orang 4)
+    Route::get('/rekap',[\App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/rekap/export/csv',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportCsv'])->name('reports.export.csv');
+    Route::get('/rekap/export/excel',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportExcel'])->name('reports.export.excel');
+    Route::get('/rekap/export/pdf',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
+    
 });

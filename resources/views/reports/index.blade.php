@@ -92,6 +92,33 @@
         overflow: hidden;
     }
 
+    .report-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0 0 16px;
+    }
+
+    .report-filter {
+        border: none;
+        border-radius: 18px;
+        padding: 8px 17px;
+        background: #e4d0ff;
+        color: #ffffff;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+
+    .report-filter.active {
+        background: #501e91;
+    }
+
+    .report-filter:hover {
+        background: #9747ff;
+    }
+
     .facility-name {
         font-family: 'Sora', Helvetica, sans-serif;
         font-size: 14px;
@@ -175,14 +202,56 @@
 
         <a
             href="{{ route('pengguna.reservations.index') }}"
-            class="tab"
-        >
+            class="tab">
             Reservasi
         </a>
 
         <span class="tab active">
             Laporan
         </span>
+
+    </div>
+
+    <div class="report-filters">
+        <button
+            type="button"
+            class="report-filter active"
+            data-status="all"
+        >
+            Semua
+        </button>
+
+        <button
+            type="button"
+            class="report-filter"
+            data-status="baru"
+        >
+            Baru
+        </button>
+
+        <button
+            type="button"
+            class="report-filter"
+            data-status="diproses"
+        >
+            Diproses
+        </button>
+
+        <button
+            type="button"
+            class="report-filter"
+            data-status="ditolak"
+        >
+            Ditolak
+        </button>
+
+        <button
+            type="button"
+            class="report-filter"
+            data-status="selesai"
+        >
+            Selesai
+        </button>
 
     </div>
 
@@ -208,8 +277,10 @@
             <tbody>
 
                 @forelse ($reports as $report)
-
-                    <tr>
+                    <tr
+                        class="report-row"
+                        data-status="{{ $report->status }}"
+                    >
 
                         <td>
                             {{ $report->created_at->locale('id')->isoFormat('D MMMM YYYY') }}
@@ -288,5 +359,36 @@
     </div>
 
 </div>
+
+<script>
+    const reportFilters = document.querySelectorAll('.report-filter');
+    const reportRows = document.querySelectorAll('.report-row');
+
+    reportFilters.forEach(function (button) {
+        button.addEventListener('click', function () {
+
+            reportFilters.forEach(function (item) {
+                item.classList.remove('active');
+            });
+
+            this.classList.add('active');
+
+            const selectedStatus = this.dataset.status;
+
+            reportRows.forEach(function (row) {
+                const rowStatus = row.dataset.status;
+
+                if (
+                    selectedStatus === 'all' ||
+                    rowStatus === selectedStatus
+                ) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 
 @endsection

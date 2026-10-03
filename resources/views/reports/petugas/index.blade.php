@@ -56,6 +56,7 @@
         color: #222222;
         vertical-align: top;
         overflow-wrap: anywhere;
+        word-break: normal;
     }
 
     .report-table td:last-child {
@@ -264,13 +265,13 @@
 
         <thead>
             <tr>
-                <th style="width: 13%;">Tanggal</th>
                 <th style="width: 14%;">Pelapor</th>
-                <th style="width: 18%;">Fasilitas</th>
-                <th style="width: 13%;">Kategori</th>
-                <th style="width: 12%;">Dokumentasi</th>
-                <th style="width: 11%;">Status</th>
-                <th style="width: 10%;">Aksi</th>
+                <th style="width: 17%;">Lokasi Fasilitas</th>
+                <th style="width: 11%;">Tanggal</th>
+                <th style="width: 15%;">Kategori Kerusakan</th>
+                <th style="width: 18%;">Deskripsi</th>
+                <th style="width: 10%;">Status</th>
+                <th style="width: 15%;">Aksi</th>
             </tr>
         </thead>
 
@@ -279,47 +280,75 @@
             @forelse ($reports as $report)
                 <tr data-status="{{ $report->status }}">
 
+                    {{-- Pelapor --}}
                     <td>
-                        {{ $report->created_at->locale('id')->isoFormat('D MMMM YYYY') }}
+                        <strong>
+                            {{ $report->user->name }}
+                        </strong>
+
+                        <div class="user-role">
+                            @if ($report->user->user_type === 'mahasiswa')
+                                Mahasiswa
+                            @elseif ($report->user->user_type === 'dosen')
+                                Dosen
+                            @elseif ($report->user->user_type === 'staff')
+                                Staff
+                            @else
+                                -
+                            @endif
+                        </div>
                     </td>
 
-                    <td>
-                        {{ $report->user->name }}
-                    </td>
-
+                    {{-- Lokasi Fasilitas --}}
                     <td>
                         <strong>
                             {{ $report->facility->name }}
                         </strong>
-                        <br>
-                        {{ $report->facility->location->gedung ?? '-' }}
+
+                        <div>
+                            @if ($report->facility->location)
+                                @if ($report->facility->location->gedung)
+                                    {{ $report->facility->location->gedung }}
+                                @endif
+
+                                @if ($report->facility->location->fakultas)
+                                    , {{ $report->facility->location->fakultas }}
+                                @endif
+                            @else
+                                -
+                            @endif
+                        </div>
                     </td>
 
+                    {{-- Tanggal --}}
+                    <td>
+                        {{ $report->created_at->locale('id')->isoFormat('D MMM YYYY') }}
+                    </td>
+
+                    {{-- Kategori --}}
                     <td>
                         {{ $report->category }}
                     </td>
 
+                    {{-- Deskripsi --}}
                     <td>
-                        {{ $report->photos->count() }} foto
+                        {{ $report->description ?: '-' }}
                     </td>
 
+                    {{-- Status --}}
                     <td>
                         <span class="status status-{{ $report->status }}">
                             {{ ucfirst($report->status) }}
                         </span>
                     </td>
 
+                    {{-- Aksi --}}
                     <td class="action-cell">
-                        @if (in_array($report->status, ['baru', 'diproses']))
-                            <a
-                                href="{{ route('petugas.reports.show', $report) }}"
-                                class="btn-action"
-                            >
-                                Kelola
-                            </a>
-                        @else
-                            -
-                        @endif
+                        <a
+                            href="{{ route('petugas.reports.show', $report) }}"
+                            class="btn-action">
+                            Detail
+                        </a>
                     </td>
 
                 </tr>

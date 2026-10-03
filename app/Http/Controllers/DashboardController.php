@@ -11,7 +11,173 @@ class DashboardController extends Controller
 {
     public function admin()
     {
-        return view('dashboard.admin');
+        $totalFacilities = Facility::count();
+
+        $totalAccounts = User::count();
+
+        $pendingAccounts = User::where('status', 'pending')
+            ->count();
+
+        $pendingRegistrations = User::where('status', 'pending')
+            ->latest()
+            ->take(3)
+            ->get();
+
+        $latestReservationDate = Reservation::orderByDesc('reservation_date')
+            ->value('reservation_date');
+
+        $latestReportDate = Report::orderByDesc('created_at')
+            ->value('created_at');
+
+        $dashboardMonth = now()->format('Y-m');
+
+        $possibleMonths = array_filter([
+            $latestReservationDate
+                ? substr((string) $latestReservationDate, 0, 7)
+                : null,
+
+            $latestReportDate
+                ? substr((string) $latestReportDate, 0, 7)
+                : null,
+        ]);
+
+        if (! empty($possibleMonths)) {
+            $dashboardMonth = max($possibleMonths);
+        }
+
+        $monthStart = \Carbon\Carbon::createFromFormat(
+            'Y-m',
+            $dashboardMonth
+        )->startOfMonth();
+
+        $monthEnd = $monthStart->copy()->endOfMonth();
+
+        $facilities = Facility::with('location')
+            ->orderBy('name')
+            ->get();
+
+        $approvedReservations = Reservation::where(
+            'status',
+            'approved'
+        )
+            ->whereBetween(
+                'reservation_date',
+                [
+                    $monthStart->toDateString(),
+                    $monthEnd->toDateString(),
+                ]
+            )
+            ->get();
+
+        $reports = Report::whereIn('status', [
+            'baru',
+            'diproses',
+            'selesai',
+            'ditolak',
+        ])
+            ->whereBetween(
+                'created_at',
+                [
+                    $monthStart,
+                    $monthEnd,
+                ]
+            )
+            ->get();
+
+        $availableMinutes = $monthStart->daysInMonth * 13 * 60;
+
+        $occupancyRows = $facilities
+            ->map(function ($facility) use (
+                $approvedReservations,
+                $availableMinutes
+            ) {
+                $usedMinutes = 0;
+
+                foreach (
+                    $approvedReservations->where(
+                        'facility_id',
+                        $facility->id
+                    ) as $reservation
+                ) {
+                    $start = \Carbon\Carbon::parse(
+                        $reservation->reservation_date
+                    )->setTimeFromTimeString(
+                        $reservation->start_time
+                    );
+
+                    $end = \Carbon\Carbon::parse(
+                        $reservation->reservation_date
+                    )->setTimeFromTimeString(
+                        $reservation->end_time
+                    );
+
+                    $usedMinutes += $start->diffInMinutes($end);
+                }
+
+                $percentage = $availableMinutes > 0
+                    ? min(
+                        100,
+                        round(
+                            ($usedMinutes / $availableMinutes) * 100
+                        )
+                    )
+                    : 0;
+
+                return [
+                    'name' => $facility->name,
+                    'location' =>
+                        $facility->location->gedung
+                        ?? $facility->location->fakultas
+                        ?? 'Universitas',
+                    'percentage' => $percentage,
+                ];
+            })
+            ->values();
+
+        $damageRows = $facilities
+            ->map(function ($facility) use ($reports) {
+                return [
+                    'name' => $facility->name,
+                    'location' =>
+                        $facility->location->gedung
+                        ?? $facility->location->fakultas
+                        ?? 'Universitas',
+                    'count' => $reports->where(
+                        'facility_id',
+                        $facility->id
+                    )->count(),
+                ];
+            })
+            ->values();
+
+        $highestOccupancy = $occupancyRows
+            ->sortByDesc('percentage')
+            ->first();
+
+        $lowestOccupancy = $occupancyRows
+            ->sortBy('percentage')
+            ->first();
+
+        $mostDamaged = $damageRows
+            ->filter(function ($row) {
+                return $row['count'] > 0;
+            })
+            ->sortByDesc('count')
+            ->first();
+
+        return view(
+            'dashboard.admin',
+            compact(
+                'totalFacilities',
+                'totalAccounts',
+                'pendingAccounts',
+                'pendingRegistrations',
+                'dashboardMonth',
+                'highestOccupancy',
+                'lowestOccupancy',
+                'mostDamaged'
+            )
+        );
     }
 
     public function petugas()
