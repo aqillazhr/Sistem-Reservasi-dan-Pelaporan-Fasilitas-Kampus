@@ -3,7 +3,6 @@
 namespace Database\Seeders;
 
 use App\Models\Facility;
-use App\Models\FacilityPhoto;
 use App\Models\FacilityType;
 use App\Models\Location;
 use Illuminate\Database\Seeder;
@@ -141,16 +140,6 @@ class FacilitySeeder extends Seeder
             $data['description'] ??= null;
             Facility::firstOrCreate(['name' => $data['name']], $data);
         }
-
-        // ─── Foto fasilitas (dummy path) ───────────────────────────────────────
-        Facility::whereNull('deleted_at')->get()->each(function (Facility $facility) {
-            if ($facility->photos()->count() === 0) {
-                FacilityPhoto::create([
-                    'facility_id' => $facility->id,
-                    'file_path'   => 'facility-photos/dummy-'.$facility->id.'.jpg',
-                ]);
-            }
-        });
 
         $this->command->info('Facility: '.count($fixedFacilities).' fasilitas tetap + foto dummy berhasil di-seed.');
     }

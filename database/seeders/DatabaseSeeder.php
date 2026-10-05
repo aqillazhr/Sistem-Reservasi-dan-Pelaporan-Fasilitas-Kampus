@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
 
             // 2. Fasilitas + lokasi (FK ke facility_types)
             FacilitySeeder::class,
+            FacilityPhotoSeeder::class,
 
             // 3. Transaksi (FK ke users & facilities)
             ReservationSeeder::class,
