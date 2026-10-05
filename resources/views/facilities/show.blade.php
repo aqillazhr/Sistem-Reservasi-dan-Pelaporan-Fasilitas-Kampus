@@ -9,8 +9,8 @@
         }
 
         /* =========================
-               CONTENT
-            ========================= */
+                                                                                       CONTENT
+                                                                                    ========================= */
 
         .container {
             padding: 20px 0 40px;
@@ -39,8 +39,8 @@
 
 
         /* =========================
-               DETAIL CARD
-            ========================= */
+                                                                                       DETAIL CARD
+                                                                                    ========================= */
 
         .detail-card {
             background: white;
@@ -143,8 +143,8 @@
         }
 
         /* =========================
-               JADWAL
-            ========================= */
+                                                                                       JADWAL
+                                                                                    ========================= */
 
         .schedule-header {
             position: relative;
@@ -179,18 +179,25 @@
         }
 
         .arrow-down {
-            font-size: 24px;
+            width: 14px;
+            height: 14px;
+            border-right: 4px solid white;
+            border-bottom: 4px solid white;
+            transform: rotate(45deg);
             margin-left: auto;
             margin-right: 8px;
-            line-height: 1;
-            transform: translateY(-6px);
-            /*untuk mengatur jarak vertikal panah di "Tanggal"*/
+            margin-top: -6px;
+            transition: transform 0.2s ease;
+        }
+
+        .date-button.active .arrow-down {
+            transform: rotate(225deg);
         }
 
 
         /* =========================
-               CALENDAR
-            ========================= */
+                                                                                       CALENDAR
+                                                                                    ========================= */
 
         .calendar {
             display: none;
@@ -315,24 +322,23 @@
 
 
         /* =========================
-               AVAILABILITY
-            ========================= */
+                                                                                       AVAILABILITY
+                                                                                    ========================= */
 
         .availability {
             margin-top: 25px;
-
             background: #b47bea;
-
             padding: 15px;
-
             border-radius: 8px;
+            overflow-x: auto;
         }
 
         .time-header,
         .availability-row {
             display: grid;
-            grid-template-columns: 120px repeat(5, 1fr);
-            gap: 10px;
+            grid-template-columns: 120px repeat(7, minmax(120px, 1fr));
+            gap: 8px;
+            width: 100%;
         }
 
         .availability-row {
@@ -348,39 +354,91 @@
         }
 
         .time {
+            min-width: 120px;
+            height: 58px;
+
             background: #f1e8ff;
 
-            padding: 13px 8px;
+            padding: 10px 8px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
 
             text-align: center;
 
             border-radius: 6px;
 
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1.2;
 
             color: #54269a;
         }
 
         .day-label {
-            background: #f1e8ff;
+            min-height: 62px;
 
-            padding: 20px 10px;
+            background: #f1e8ff;
+            padding: 10px 8px;
 
             border-radius: 6px;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
 
             text-align: center;
 
             color: #54269a;
-
-            font-weight: bold;
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 1.35;
         }
 
         .slot {
-            height: 55px;
+            height: 58px;
+            min-width: 120px;
 
-            border-radius: 5px;
-
+            border-radius: 6px;
             background: #f1e8ff;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            text-align: center;
+
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1.25;
+
+            color: #54269a;
+
+            padding: 6px 8px;
+
+            overflow-wrap: break-word;
+            word-break: normal;
+
+            transition:
+                background 0.2s ease,
+                transform 0.15s ease;
+        }
+
+        .slot.available {
+            background: #dff5df;
+            color: #267326;
+        }
+
+        .slot.unavailable {
+            background: #f5dcdc;
+            color: #a33333;
+        }
+
+        .slot.pending {
+            background: #fff3b8;
+            color: #8a6800;
         }
     </style>
 @endpush
@@ -429,9 +487,9 @@
                         semua logikanya (fetch jadwal, validasi, submit) sudah
                         lengkap di partial itu.
                     --}}
-                    <a href="{{ route('pengguna.reservations.create') }}" class="reserve-button">
+                    <button type="button" class="reserve-button" onclick="openReservationModal({{ $facility->id }})">
                         Ajukan Reservasi
-                    </a>
+                    </button>
                 @endif
             @endauth
         </div>
@@ -439,8 +497,8 @@
 
 
         <!-- =========================
-                 DETAIL FASILITAS
-            ========================= -->
+                                                                                         DETAIL FASILITAS
+                                                                                    ========================= -->
 
         <div class="detail-card">
 
@@ -565,8 +623,8 @@
 
 
         <!-- =========================
-                 JADWAL
-            ========================= -->
+                                                                                         JADWAL
+                                                                                    ========================= -->
 
         <h2>
             Jadwal Fasilitas
@@ -578,13 +636,13 @@
             <button type="button" class="date-button" id="dateButton">
                 <span id="selectedDateText">Tanggal</span>
 
-                <span class="arrow-down">⌄</span>
+                <span class="arrow-down"></span>
             </button>
 
 
             <!-- =========================
-                     CALENDAR
-                ========================= -->
+                                                                                             CALENDAR
+                                                                                        ========================= -->
 
             <div id="calendar" class="calendar">
 
@@ -627,8 +685,8 @@
 
 
         <!-- =========================
-                 AVAILABILITY
-            ========================= -->
+                                                                                         AVAILABILITY
+                                                                                    ========================= -->
 
         <div class="availability">
 
@@ -640,10 +698,14 @@
                 <div class="day-label">Rabu</div>
                 <div class="day-label">Kamis</div>
                 <div class="day-label">Jumat</div>
+                <div class="day-label">Sabtu</div>
+                <div class="day-label">Minggu</div>
             </div>
 
             <div class="availability-row">
                 <div class="time">07.00 - 07.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -658,10 +720,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">08.00 - 08.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -676,10 +742,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">09.00 - 09.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -694,10 +764,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">10.00 - 10.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -712,10 +786,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">11.00 - 11.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -730,10 +808,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">12.00 - 12.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -748,10 +830,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">13.00 - 13.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -766,10 +852,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">14.00 - 14.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -784,10 +874,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">15.00 - 15.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -802,10 +896,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">16.00 - 16.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -820,10 +918,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">17.00 - 17.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -838,10 +940,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">18.00 - 18.30</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -856,6 +962,8 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
@@ -865,10 +973,14 @@
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
+                <div class="slot"></div>
+                <div class="slot"></div>
             </div>
 
             <div class="availability-row">
                 <div class="time">19.30 - 20.00</div>
+                <div class="slot"></div>
+                <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
                 <div class="slot"></div>
@@ -884,14 +996,14 @@
 
 
     <!-- =========================
-             JAVASCRIPT CALENDAR
-        ========================= -->
+                                                                                     JAVASCRIPT CALENDAR
+                                                                                ========================= -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
 
-            let currentDate = new Date(2026, 8, 22);
-            let selectedDate = new Date(2026, 8, 22);
+            let currentDate = new Date();
+            let selectedDate = new Date();
 
             const calendar =
                 document.getElementById('calendar');
@@ -924,15 +1036,243 @@
                 'Desember'
             ];
 
+            // =========================
+            // AVAILABILITY
+            // =========================
 
+            const availability =
+                document.querySelector('.availability');
+
+            const dayLabels =
+                availability.querySelectorAll('.day-label');
+
+            const availabilityRows =
+                availability.querySelectorAll('.availability-row');
+
+            const dayNames = [
+                'Senin',
+                'Selasa',
+                'Rabu',
+                'Kamis',
+                'Jumat',
+                'Sabtu',
+                'Minggu'
+            ];
+
+            function formatDate(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+
+                return `${year}-${month}-${day}`;
+            }
+
+            function getMonday(date) {
+                const result = new Date(date);
+                const day = result.getDay();
+
+                const difference = day === 0 ? -6 : 1 - day;
+
+                result.setDate(result.getDate() + difference);
+
+                return result;
+            }
+
+            function getTimeFromIndex(index) {
+                const totalMinutes = 7 * 60 + (index * 30);
+
+                const hour = Math.floor(totalMinutes / 60);
+                const minute = totalMinutes % 60;
+
+                return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            }
+
+            async function renderAvailability(date) {
+
+                const monday = getMonday(date);
+
+                // =========================
+                // HEADER HARI + TANGGAL
+                // =========================
+
+                dayLabels.forEach((label, index) => {
+
+                    const currentDay = new Date(monday);
+
+                    currentDay.setDate(
+                        monday.getDate() + index
+                    );
+
+                    const displayDate =
+                        currentDay.toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                        });
+
+                    label.innerHTML = `
+            ${dayNames[index]}
+            <br>
+            ${displayDate}
+        `;
+                });
+
+
+                // =========================
+                // AMBIL DATA RESERVASI
+                // =========================
+
+                try {
+
+                    const response = await fetch(
+                        `{{ route('facilities.slots', $facility) }}?from=${formatDate(monday)}&days=7`
+                    );
+
+                    if (!response.ok) {
+                        throw new Error('Gagal mengambil data availability.');
+                    }
+
+                    const data = await response.json();
+                    console.log('DATA RESERVASI:', data.slots);
+
+
+                    // =========================
+                    // CATAT SLOT YANG TERISI
+                    // =========================
+
+                    const occupied = new Map();
+
+                    data.slots.forEach(reservation => {
+
+                        const reservationStart =
+                            reservation.start_time;
+
+                        const reservationEnd =
+                            reservation.end_time;
+
+                        for (let i = 0; i < 26; i++) {
+
+                            const slotStart =
+                                getTimeFromIndex(i);
+
+                            const slotEnd =
+                                getTimeFromIndex(i + 1);
+
+                            if (
+                                slotStart < reservationEnd &&
+                                slotEnd > reservationStart
+                            ) {
+
+                                occupied.set(
+                                    `${reservation.date}|${slotStart}`,
+                                    reservation.state
+                                );
+
+                            }
+                        }
+                    });
+
+
+                    // =========================
+                    // ISI KOTAK YANG SUDAH ADA
+                    // =========================
+
+                    availabilityRows.forEach((row, rowIndex) => {
+
+                        const slots =
+                            row.querySelectorAll('.slot');
+
+                        const startTime =
+                            getTimeFromIndex(rowIndex);
+
+                        slots.forEach((slot, dayIndex) => {
+
+                            const currentDay =
+                                new Date(monday);
+
+                            currentDay.setDate(
+                                monday.getDate() + dayIndex
+                            );
+
+                            const dateString =
+                                formatDate(currentDay);
+
+
+                            // =========================
+                            // CEK STATUS FASILITAS
+                            // =========================
+
+                            let isAvailable =
+                                @json($facility->status) === 'aktif';
+
+
+                            // =========================
+                            // CEK RESERVASI
+                            // =========================
+
+                            const reservationStatus = occupied.get(
+                                `${dateString}|${startTime}`
+                            );
+
+                            if (reservationStatus === 'approved') {
+                                isAvailable = false;
+                            }
+
+
+                            // =========================
+                            // CEK WAKTU YANG SUDAH LEWAT
+                            // =========================
+
+                            const slotDateTime =
+                                new Date(
+                                    `${dateString}T${startTime}:00`
+                                );
+
+                            if (
+                                slotDateTime <= new Date()
+                            ) {
+                                isAvailable = false;
+                            }
+
+
+                            // =========================
+                            // TAMPILKAN
+                            // =========================
+
+                            slot.classList.remove(
+                                'available',
+                                'unavailable',
+                                'pending'
+                            );
+
+                            if (reservationStatus === 'pending' && isAvailable) {
+                                slot.classList.add('pending');
+                                slot.textContent = 'Menunggu';
+                            } else if (isAvailable) {
+                                slot.classList.add('available');
+                                slot.textContent = 'Tersedia';
+                            } else {
+                                slot.classList.add('unavailable');
+                                slot.textContent = 'Tidak tersedia';
+                            }
+
+                        });
+
+                    });
+
+                } catch (error) {
+
+                    console.error(error);
+
+                }
+            }
             /* =========================
-               KLIK TANGGAL
-            ========================= */
+                           KLIK TANGGAL
+                        ========================= */
 
             dateButton.addEventListener('click', function() {
-
                 calendar.classList.toggle('show');
-
+                dateButton.classList.toggle('active');
                 renderCalendar();
 
             });
@@ -1060,6 +1400,10 @@
                             );
 
                             renderCalendar();
+                            renderAvailability(selectedDate);
+
+                            calendar.classList.remove('show');
+                            dateButton.classList.remove('active');
 
                         }
                     );
@@ -1077,6 +1421,7 @@
             ========================= */
 
             renderCalendar();
+            renderAvailability(selectedDate);
 
         });
     </script>
@@ -1084,7 +1429,6 @@
     {{--
         TODO (Orang 2, koordinasi dengan Orang 3):
         Tambahkan di sini: @include('reservations.partials.booking-modal')
-
         Partial itu sudah membawa dialog modal + JS-nya sendiri (fetch
         jadwal, validasi, popup konfirmasi, submit) DAN style-nya sendiri
         (reservations._styles) — tidak perlu include tambahan apa pun.
@@ -1096,5 +1440,5 @@
         (resources/views/reservations/partials/booking-modal.blade.php),
         jangan salin/tulis ulang modal baru di file ini.
     --}}
-
+    @include('reservations.partials.booking-modal')
 @endsection

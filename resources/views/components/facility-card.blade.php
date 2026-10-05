@@ -3,8 +3,8 @@
 
 <div class="facility-card">
     @if ($facility->photos->first())
-        <img src="{{ asset('storage/' . $facility->photos->first()->file_path) }}"
-             alt="{{ $facility->name }}" class="facility-card__photo">
+        <img src="{{ asset('storage/' . $facility->photos->first()->file_path) }}" alt="{{ $facility->name }}"
+            class="facility-card__photo">
     @else
         <div class="facility-card__photo"></div>
     @endif
@@ -22,5 +22,11 @@
         </div>
     </div>
 
-    <a href="{{ route('facilities.show', $facility) }}" class="facility-card__arrow" aria-label="Lihat detail">›</a>
+    <a href="{{ route('facilities.show', [
+        'facility' => $facility,
+        'from' => url()->full(),
+    ]) }}"
+        class="facility-card__arrow" aria-label="Lihat detail">
+        ›
+    </a>
 </div>
