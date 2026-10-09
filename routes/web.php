@@ -106,9 +106,9 @@ Route::middleware(['auth', 'role:petugas'])->prefix('petugas')->name('petugas.')
     Route::post('/reservasi/{reservation}/batal', [ReservationController::class, 'petugasCancel'])->name('reservations.petugas-cancel');
 
     // Laporan (Orang 4)
+    Route::get('/laporan', [ReportController::class, 'petugasIndex'])->name('reports.index');
+    Route::get('/laporan/{report}', [ReportController::class, 'petugasShow'])->whereNumber('report')->name('reports.show');
     Route::patch('/laporan/{report}/status', [ReportController::class, 'updateStatus'])->name('reports.update-status');
-    Route::post('/laporan/{report}/dalam-perbaikan', [ReportController::class, 'markUnderRepair'])->name('reports.mark-under-repair');
-    Route::post('/laporan/{report}/selesai-perbaikan', [ReportController::class, 'markFixed'])->name('reports.mark-fixed');
 });
 
 // ==========================================================
@@ -130,4 +130,11 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     // Fasilitas (Orang 2)
     Route::post('/fasilitas', [FacilityController::class, 'store'])->name('facilities.store');
     Route::put('/fasilitas/{facility}', [FacilityController::class, 'update'])->name('facilities.update');
+
+    // Rekap dan Ekspor (Orang 4)
+    Route::get('/rekap',[\App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/rekap/export/csv',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportCsv'])->name('reports.export.csv');
+    Route::get('/rekap/export/excel',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportExcel'])->name('reports.export.excel');
+    Route::get('/rekap/export/pdf',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
+    
 });

@@ -19,7 +19,7 @@
 
         body {
             font-family: 'Sora', Helvetica, sans-serif;
-            background-color: #fbf7ff;
+            background: linear-gradient(180deg, #956ACD 0%, #fbf7ff 257px) no-repeat, #fbf7ff;
             color: #260f45;
         }
 
@@ -27,13 +27,12 @@
         .navbar {
             width: 100%;
             height: 117px;
-            background-color: #260f45;
+            background-color: transparent;
             display: flex;
             align-items: center;
             padding: 0 20px;
             gap: 0;
-            position: sticky;
-            top: 0;
+            position: relative;   /* ikut gulir, tidak lagi sticky */
             z-index: 100;
         }
 
@@ -66,8 +65,10 @@
         .navbar .nav-links {
             display: flex;
             align-items: center;
-            gap: 0;
-            margin-left: 54px;
+            gap: 20px;
+            margin-left: 38px;
+            position: relative;
+            top: 3px;
         }
         .navbar .nav-links a {
             display: flex;
@@ -76,15 +77,22 @@
             font-family: 'Sora', Helvetica, sans-serif;
             font-weight: 600;
             color: #ffffff;
-            font-size: 18px;
-            margin-right: 40px;
+            font-size: 20px;
+            height: 46px;
+            padding: 0 16px;
+            border-radius: 30px;
             white-space: nowrap;
-            opacity: 0.85;
-            transition: opacity .15s;
+            transition: background-color .15s;
         }
-        .navbar .nav-links a:hover,
-        .navbar .nav-links a.active { opacity: 1; }
-        .navbar .nav-links a svg { flex-shrink: 0; width: 20px; height: 20px; }
+        .navbar .nav-links a:hover { background-color: rgba(189, 147, 248, 0.25); }
+        .navbar .nav-links a.active { background-color: rgba(189, 147, 248, 0.43); }
+        .navbar .nav-links a svg { flex-shrink: 0; width: 23px; height: 23px; }
+
+        /* Admin punya 4 menu: di layar < 1500px dipadatkan supaya tidak menabrak kotak pencarian */
+        @media (max-width: 1500px) {
+            .navbar .nav-links:has(> a:nth-child(4)) { gap: 6px; }
+            .navbar .nav-links:has(> a:nth-child(4)) a { padding: 0 12px; font-size: 18px; }
+        }
 
         /* Search bar */
         .navbar .search-wrap {
@@ -221,11 +229,35 @@
             margin-bottom: 20px;
             font-size: 15px;
         }
+        /* graphics */
+        body { position: relative; }
+        .page-content { position: relative; z-index: 1; }
+        .deco-wrap {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.4;
+        }
+        .deco {
+            position: absolute;
+            background: url('{{ asset("images/graphic.png") }}') no-repeat;
+            background-size: contain;
+        }
+        .deco-right { width: 360px; height: 720px; right: -90px; top: -200px; }
+        .deco-left  { width: 420px; height: 840px; left: -160px; bottom: -260px; }
+        .deco-mid   { display: none; }
     </style>
     @stack('styles')
 
 </head>
 <body>
+
+    <div class="deco-wrap" aria-hidden="true">
+        <div class="deco deco-right"></div>
+        <div class="deco deco-left"></div>
+    </div>
 
     <nav class="navbar">
         {{-- Logo --}}
@@ -254,6 +286,15 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         Pengguna
                     </a>
+                    <a href="{{ route('admin.reports.index') }}" @class(['active' => request()->routeIs('admin.reports.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16v16H4z"/>
+                            <path d="M8 8h8"/>
+                            <path d="M8 12h8"/>
+                            <path d="M8 16h5"/>
+                        </svg>
+                        Rekap dan Ekspor
+                    </a>
                 @elseif ($role === 'petugas')
                     <a href="{{ route('petugas.dashboard') }}" @class(['active' => request()->routeIs('petugas.dashboard')])>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
@@ -263,10 +304,14 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                         Reservasi
                     </a>
-                    <a href="#" @class(['active' => request()->routeIs('petugas.reports.*')])>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                    <a href="{{ route('petugas.reports.index') }}" @class(['active' => request()->routeIs('petugas.reports.*')])>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
                         Laporan
                     </a>
+    
                 @else
                     <a href="{{ route('pengguna.dashboard') }}" @class(['active' => request()->routeIs('pengguna.dashboard')])>
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>

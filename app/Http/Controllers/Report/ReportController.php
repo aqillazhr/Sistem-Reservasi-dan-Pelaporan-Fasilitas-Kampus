@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Report;
 use App\Http\Controllers\Controller;
 use App\Models\Facility;
 use App\Models\Report;
+use App\Models\StatusLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -282,19 +283,28 @@ class ReportController extends Controller
 
     public function storeDraft(Request $request)
     {
+        $isPreview = $request->input('action') === 'preview';
+
         $validated = $request->validate([
             'facility_id' => ['required', 'exists:facilities,id'],
             'category' => ['required', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
-            'photos' => ['nullable', 'array', 'max:3'],
+
+            'photos' => $isPreview
+                ? ['required', 'array', 'min:1', 'max:3']
+                : ['nullable', 'array', 'max:3'],
+
             'photos.*' => ['image', 'max:4096'],
         ],
         [
-            'photos.max' =>
-                'Maksimal 3 foto yang dapat diupload.',
+            'photos.required' =>
+                'Minimal 1 foto diperlukan untuk melihat pratinjau laporan.',
 
             'photos.min' =>
-                'Minimal 1 foto harus dipilih.',
+                'Minimal 1 foto diperlukan untuk melihat pratinjau laporan.',
+
+            'photos.max' =>
+                'Maksimal 3 foto yang dapat diupload.',
 
             'photos.*.max' =>
                 'Ukuran setiap foto maksimal 4 MB.',
@@ -389,46 +399,183 @@ class ReportController extends Controller
                 $report->photos()->create(['file_path' => $path]);
             }
 
-            // Kalau sampai sini tidak ada foto yang tersimpan, transaction
-            // akan rollback otomatis karena validasi 'min:1' di atas
-            // menjamin minimal ada 1 file yang lolos ke sini.
-
             return $report;
         });
 
         return redirect()->route('pengguna.reports.show', $report)->with('status', 'Laporan berhasil dikirim.');
     }
 
+    public function petugasIndex(Request $request)
+    {
+        $reports = Report::with([
+            'user',
+            'facility.location',
+            'facility.type',
+            'photos',
+        ])
+            ->whereIn('status', [
+                'baru',
+                'diproses',
+                'selesai',
+                'ditolak',
+            ])
+            ->latest()
+            ->get();
+
+        return view('reports.petugas.index', compact('reports'));
+    }
+
+    public function petugasShow(Request $request, Report $report)
+    {
+        $report->load([
+            'user',
+            'facility.location',
+            'facility.type',
+            'photos',
+            'statusLogs.changedBy',
+        ]);
+
+        return view('reports.petugas.show', compact('report'));
+    }
+
     public function updateStatus(Request $request, Report $report)
     {
         $validated = $request->validate([
-            'status' => ['required', 'in:diproses,selesai,ditolak'],
-            'resolution_note' => ['nullable', 'required_if:status,selesai,ditolak', 'string'],
+            'status' => [
+                'required',
+                'in:diproses,selesai,ditolak',
+            ],
+
+            'facility_action' => [
+                'nullable',
+                'required_if:status,diproses',
+                'in:tetap_aktif,dalam_perbaikan',
+            ],
+
+            'resolution_note' => [
+                'nullable',
+                'required_if:status,selesai,ditolak',
+                'string',
+            ],
+        ], [
+            'status.required' =>
+                'Status laporan wajib dipilih.',
+
+            'status.in' =>
+                'Status laporan tidak valid.',
+
+            'facility_action.required_if' =>
+                'Kondisi fasilitas wajib dipilih ketika laporan diproses.',
+
+            'facility_action.in' =>
+                'Kondisi fasilitas tidak valid.',
+
+            'resolution_note.required_if' =>
+                'Catatan penanganan wajib diisi ketika laporan selesai atau ditolak.',
+
+            'resolution_note.string' =>
+                'Catatan penanganan harus berupa teks.',
         ]);
 
-        if ($report->status === 'baru' && $validated['status'] !== 'diproses')
-        {
+        if (
+            $report->status === 'baru'
+            && !in_array(
+                $validated['status'],
+                ['diproses', 'ditolak'],
+                true
+            )
+        ) {
             return back()->withErrors([
-                'status' => 'Laporan baru hanya dapat diubah menjadi diproses.',
-            ]);
+                'status' =>
+                    'Laporan baru hanya dapat diproses atau ditolak.',
+            ])->withInput();
         }
 
-        if ($report->status === 'diproses' && !in_array($validated['status'],['selesai', 'ditolak'],true)) 
-        {
+        if (
+            $report->status === 'diproses'
+            && !in_array(
+                $validated['status'],
+                ['diproses', 'selesai', 'ditolak'],
+                true
+            )
+        ) {
             return back()->withErrors([
-                'status' => 'Laporan yang sedang diproses hanya dapat menjadi selesai atau ditolak.',
-            ]);
+                'status' =>
+                    'Status laporan tidak valid.',
+            ])->withInput();
         }
 
-        $report->update([
-            'status' => $validated['status'],
-            'resolution_note' => $validated['resolution_note'] ?? $report->resolution_note,
-            'resolved_at' => in_array($validated['status'], ['selesai', 'ditolak'], true) ? now() : null,
-        ]);
+        DB::transaction(function () use ($validated, $report, $request) {
 
-        return back()->with('status', 'Status laporan diperbarui.');
+            $oldStatus = $report->status;
+            $newStatus = $validated['status'];
+
+            if ($newStatus === 'diproses') {
+
+                if (
+                    $validated['facility_action'] === 'dalam_perbaikan'
+                    && $report->facility->status !== 'dalam perbaikan'
+                ) {
+                    $report->facility->updateFacilityStatus(
+                        'dalam perbaikan',
+                        $request->user()->id,
+                        "Terkait laporan #{$report->id}"
+                    );
+                }
+
+                if (
+                    $validated['facility_action'] === 'tetap_aktif'
+                    && $report->facility->status !== 'aktif'
+                ) {
+                    $report->facility->updateFacilityStatus(
+                        'aktif',
+                        $request->user()->id,
+                        "Fasilitas tetap aktif, terkait laporan #{$report->id}"
+                    );
+                }
+            }
+
+            if (
+                in_array($newStatus, ['selesai', 'ditolak'], true)
+                && $report->facility->status !== 'aktif'
+            ) {
+                $report->facility->updateFacilityStatus(
+                    'aktif',
+                    $request->user()->id,
+                    "Laporan #{$report->id} ditutup"
+                );
+            }
+
+            $report->update([
+                'status' => $newStatus,
+                'resolution_note' =>
+                    in_array($newStatus, ['selesai', 'ditolak'], true)
+                        ? $validated['resolution_note']
+                        : null,
+                'resolved_at' =>
+                    in_array($newStatus, ['selesai', 'ditolak'], true)
+                        ? now()
+                        : null,
+            ]);
+
+            if ($oldStatus !== $newStatus) {
+                StatusLog::create([
+                    'report_id' => $report->id,
+                    'changed_by_user_id' => $request->user()->id,
+                    'old_status' => $oldStatus,
+                    'new_status' => $newStatus,
+                    'note' => $validated['resolution_note'] ?? null,
+                ]);
+            }
+        });
+
+        return back()->with(
+            'status',
+            'Status laporan berhasil diperbarui.'
+        );
     }
 
+    
     public function markUnderRepair(Request $request, Report $report)
     {
         // Panggil method milik Model Facility (Orang 2), jangan bikin

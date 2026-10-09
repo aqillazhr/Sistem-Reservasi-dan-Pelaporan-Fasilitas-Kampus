@@ -67,7 +67,7 @@
     </style>
 
     <div class="kr">
-        <h1>Kelola Reservasi</h1>
+        <h1 style="color: #3C186B;">Kelola Reservasi</h1>
 
         <form method="GET" action="{{ route('petugas.reservations.index') }}" class="search-bar">
             <input type="hidden" name="status" value="{{ $tab }}">
