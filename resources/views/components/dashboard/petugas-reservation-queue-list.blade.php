@@ -1,5 +1,5 @@
 <div style="
-    flex: 1; min-width: 465px; background: #fff; border: 1px solid #9747FF; border-radius: 10px;
+    flex: 1; min-width: 465px; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(151, 71, 255, 0.7); border-radius: 10px;
     padding: 18px 20px; font-family: 'Sora', Helvetica, sans-serif;">
     <h2 style="margin: 0 0 14px; font-size: 25px; font-weight: 700; color: #000;">Antrian Reservasi</h2>
 

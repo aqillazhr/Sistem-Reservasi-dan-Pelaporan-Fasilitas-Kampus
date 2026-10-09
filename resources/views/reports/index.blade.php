@@ -13,7 +13,7 @@
         font-family: 'Sora', Helvetica, sans-serif;
         font-weight: 700;
         font-size: 40px;
-        color: #501e91;
+        color: #3C186B;
         margin: 0 0 6px;
         letter-spacing: 0;
         line-height: normal;

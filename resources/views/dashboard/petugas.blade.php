@@ -22,7 +22,7 @@
         font-size: 40px;
         font-weight: 700;
         line-height: 1.2;
-        color: #111111;
+        color: #3C186B;
     }
 
 
@@ -40,8 +40,8 @@
         flex: 1;
         min-width: 0;
         height: 120px;
-        background: #ffffff;
-        border: 1px solid #9747FF;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(151, 71, 255, 0.7);
         border-radius: 8px;
         font-family: 'Sora', Helvetica, sans-serif;
         display: flex;
@@ -92,8 +92,8 @@
     .petugas-queue-card {
         flex: 1;
         min-width: 0;
-        background: #ffffff;
-        border: 1px solid #9747FF;
+        background: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(151, 71, 255, 0.7);
         border-radius: 10px;
         padding: 18px 20px;
         font-family: 'Sora', Helvetica, sans-serif;
@@ -216,7 +216,9 @@
         }
     }
 
+    
 </style>
+
 
 
 <div class="petugas-dashboard">
@@ -329,8 +331,8 @@
         <div style="
             flex: 1;
             min-width: 465px;
-            background: #fff;
-            border: 1px solid #9747FF;
+            background: rgba(255, 255, 255, 0.7);
+            border: 1px solid rgba(151, 71, 255, 0.7);
             border-radius: 10px;
             padding: 18px 20px;
             font-family: 'Sora', Helvetica, sans-serif;
