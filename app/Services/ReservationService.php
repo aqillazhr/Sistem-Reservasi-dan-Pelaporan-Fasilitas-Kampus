@@ -329,6 +329,15 @@ class ReservationService
                 ]);
             }
 
+            // Simetris dengan approveByOfficer(): reservasi yang waktu booking-nya
+            // sudah lewat biar konsisten cuma bisa "diproses" lewat autoCancelExpired()
+            // (jadi cancelled), bukan ditolak manual lagi.
+            if (now()->gt($reservation->endsAt())) {
+                throw ValidationException::withMessages([
+                    'reservation' => 'Reservasi ini sudah lewat waktu booking-nya dan otomatis dibatalkan sistem, tidak bisa ditolak lagi.',
+                ]);
+            }
+
             $reservation->update(['status' => 'rejected']);
 
             // Alasan penolakan disimpan di status_logs.note (BUKAN cancellation_reason,

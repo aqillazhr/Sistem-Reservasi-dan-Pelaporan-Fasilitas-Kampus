@@ -296,4 +296,18 @@ class ReservationPetugasTest extends TestCase
 
         $this->assertSame('pending', $r->fresh()->status); // approve gagal, tapi juga BELUM auto-cancelled di sini
     }
+
+    public function test_reservasi_kedaluwarsa_tidak_bisa_ditolak_lagi_kalau_kelewatan_disweep(): void
+    {
+        // Simetris dengan approve: reservasi yang waktu booking-nya sudah lewat
+        // juga tidak boleh ditolak manual lagi (tetap harus lewat autoCancelExpired()).
+        $r = $this->makeReservation(['reservation_date' => '2026-09-24', 'start_time' => '07:00', 'end_time' => '07:30']);
+        Carbon::setTestNow(Carbon::create(2026, 9, 24, 8, 0, 1, 'Asia/Jakarta')); // 1 detik setelah end_time
+
+        $this->actingAs($this->officer)
+            ->post(route('petugas.reservations.reject', $r), ['note' => 'Terlambat diproses'])
+            ->assertSessionHasErrors('reservation');
+
+        $this->assertSame('pending', $r->fresh()->status); // reject gagal, tapi juga BELUM auto-cancelled di sini
+    }
 }
