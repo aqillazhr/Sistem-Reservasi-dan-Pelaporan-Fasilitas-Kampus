@@ -9,8 +9,8 @@
         }
 
         /* =========================
-                                                                                                                                   CONTENT
-                                                                                                                                ========================= */
+                                                                                                                                       CONTENT
+                                                                                                                                    ========================= */
 
         .container {
             padding: 20px 0 40px;
@@ -53,8 +53,8 @@
 
 
         /* =========================
-                                                                                                                                   DETAIL CARD
-                                                                                                                                ========================= */
+                                                                                                                                       DETAIL CARD
+                                                                                                                                    ========================= */
 
         .detail-card {
             background: white;
@@ -170,8 +170,8 @@
         }
 
         /* =========================
-                                                                                                                                   JADWAL
-                                                                                                                                ========================= */
+                                                                                                                                       JADWAL
+                                                                                                                                    ========================= */
 
         .schedule-header {
             position: relative;
@@ -223,8 +223,8 @@
 
 
         /* =========================
-                                                                                                                                   CALENDAR
-                                                                                                                                ========================= */
+                                                                                                                                       CALENDAR
+                                                                                                                                    ========================= */
 
         .calendar {
             display: none;
@@ -349,8 +349,8 @@
 
 
         /* =========================
-                                                                                                                                   AVAILABILITY
-                                                                                                                                ========================= */
+                                                                                                                                       AVAILABILITY
+                                                                                                                                    ========================= */
 
         .availability {
             margin-top: 25px;
@@ -510,8 +510,8 @@
 
 
         <!-- =========================
-        DETAIL FASILITAS
-        ========================= -->
+            DETAIL FASILITAS
+            ========================= -->
 
         <div class="detail-card">
 
@@ -595,19 +595,13 @@
 
 
                 <div class="detail-row">
-
-                    <span class="label">
-                        Lokasi
-                    </span>
-
-                    <span class="colon">
-                        :
-                    </span>
+                    <span class="label">Lokasi</span>
+                    <span class="colon">:</span>
 
                     <strong>
-                        {{ $facility->location->ruangan ?? '-' }}
+                        {{ collect([$facility->location->ruangan, $facility->location->gedung, $facility->location->fakultas])->filter()->implode(', ') ?:
+                            '-' }}
                     </strong>
-
                 </div>
 
 
@@ -636,8 +630,8 @@
 
 
         <!-- =========================
-                                                                                                                                     JADWAL
-                                                                                                                                ========================= -->
+                                                                                                                                         JADWAL
+                                                                                                                                    ========================= -->
 
         <h2>
             Jadwal Fasilitas
@@ -654,8 +648,8 @@
 
 
             <!-- =========================
-                                                                                                                                         CALENDAR
-                                                                                                                                    ========================= -->
+                                                                                                                                             CALENDAR
+                                                                                                                                        ========================= -->
 
             <div id="calendar" class="calendar">
 
@@ -698,8 +692,8 @@
 
 
         <!-- =========================
-                                                                                                                                     AVAILABILITY
-                                                                                                                                ========================= -->
+                                                                                                                                         AVAILABILITY
+                                                                                                                                    ========================= -->
 
         <div class="availability">
 
@@ -1009,8 +1003,8 @@
 
 
     <!-- =========================
-                                                                                                                                 JAVASCRIPT CALENDAR
-                                                                                                                            ========================= -->
+                                                                                                                                     JAVASCRIPT CALENDAR
+                                                                                                                                ========================= -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
