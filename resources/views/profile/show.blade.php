@@ -6,16 +6,64 @@
 <style>
     .profile-wrap { position: relative; padding: 40px 40px 140px; min-height: 800px; }
 
-    .avatar-big {
+    .avatar-col {
         position: absolute;
         left: 82px; top: 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .avatar-big {
         width: 282px; height: 282px;
         border-radius: 50%;
         background: #BD93F8;
         display: flex; align-items: center; justify-content: center;
         font-family: 'Inter', sans-serif; font-weight: 500; font-size: 64px;
         color: #FFFFFF;
+        overflow: hidden;
+        flex-shrink: 0;
     }
+    .avatar-big img {
+        width: 100%; height: 100%;
+        object-fit: cover;
+    }
+
+    .btn-ubah-foto {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 206px;
+        height: 61px;
+        background: rgba(151, 71, 255, 0.6);
+        border: none;
+        border-radius: 15px;
+        color: #FFFFFF;
+        font-family: 'Sora', sans-serif;
+        font-weight: 700;
+        font-size: 18px;
+        cursor: pointer;
+        transition: background .15s;
+    }
+    .btn-ubah-foto:hover { background: rgba(151, 71, 255, 0.8); }
+
+    .btn-hapus-foto {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: none;
+        border: none;
+        color: #dc2626;
+        font-family: 'Sora', sans-serif;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        padding: 0;
+    }
+    .btn-hapus-foto:hover { text-decoration: underline; }
+
+    .avatar-input { display: none; }
 
     .content-col { margin-left: 420px; max-width: 722px; }
 
@@ -69,6 +117,7 @@
         font-family: 'Sora', sans-serif;
         font-weight: 600; font-size: 20px;
         color: #000000;
+        box-sizing: border-box;
     }
     .edit-input::placeholder { color: #511F91; font-weight: 600; }
     .edit-input:last-of-type { margin-bottom: 0; }
@@ -90,7 +139,33 @@
 </style>
 
 <div class="profile-wrap">
-    <div class="avatar-big">{{ strtoupper($initials) }}</div>
+
+    {{-- ===== Avatar + tombol ubah foto ===== --}}
+    <div class="avatar-col">
+        <div class="avatar-big" id="avatarPreview">
+            @if ($user->avatar)
+                <img src="{{ asset('storage/' . $user->avatar) }}" alt="Foto profil {{ $user->name }}">
+            @else
+                {{ strtoupper($initials) }}
+            @endif
+        </div>
+
+        {{-- Form upload foto (hidden input, trigger lewat tombol) --}}
+        <form method="POST" action="{{ route('profile.avatar.update') }}" enctype="multipart/form-data" id="avatarForm">
+            @csrf
+            <input type="file" name="avatar" accept="image/jpeg,image/png,image/webp" class="avatar-input" id="avatarInput">
+            <button type="button" class="btn-ubah-foto" id="btnUbahFoto">Ubah Foto</button>
+        </form>
+        @error('avatar')<div class="error-text" style="text-align:center;">{{ $message }}</div>@enderror
+
+        @if ($user->avatar)
+            <form method="POST" action="{{ route('profile.avatar.delete') }}">
+                @csrf
+                @method('DELETE')
+                <button type="submit" class="btn-hapus-foto">Hapus Foto</button>
+            </form>
+        @endif
+    </div>
 
     <div class="content-col">
         <h1 class="section-heading">Profil Saya</h1>
@@ -137,4 +212,31 @@
         </div>
     </div>
 </div>
+
+<script>
+(function () {
+    var btnUbah = document.getElementById('btnUbahFoto');
+    var input = document.getElementById('avatarInput');
+    var form = document.getElementById('avatarForm');
+    var preview = document.getElementById('avatarPreview');
+
+    btnUbah.addEventListener('click', function () {
+        input.click();
+    });
+
+    input.addEventListener('change', function () {
+        if (input.files && input.files[0]) {
+            // Preview langsung
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                preview.innerHTML = '<img src="' + e.target.result + '" alt="Preview" style="width:100%;height:100%;object-fit:cover;">';
+            };
+            reader.readAsDataURL(input.files[0]);
+
+            // Auto-submit form
+            form.submit();
+        }
+    });
+})();
+</script>
 @endsection

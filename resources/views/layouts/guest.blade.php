@@ -7,7 +7,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aclonica&family=Abel&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
@@ -62,22 +62,25 @@
 
         .brand {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
+            align-items: baseline;
+            justify-content: center;
             margin-bottom: 20px;
+            text-decoration: none;
         }
-        .brand-icon {
-            width: 56px;
-            height: 55px;
-            border-radius: 6px;
-            background: linear-gradient(180deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+        .brand-ready {
+            font-family: 'Aclonica', sans-serif;
+            font-weight: 400;
+            font-size: 64px;
+            line-height: 73px;
+            color: #210C3D;
         }
-        .brand-name {
-            font-weight: 700;
-            font-size: 21px;
-            color: var(--color-primary-dark);
-            letter-spacing: .02em;
+        .brand-dips {
+            font-family: 'Abel', sans-serif;
+            font-weight: 400;
+            font-size: 40px;
+            line-height: 51px;
+            color: #511F91;
+            margin-left: -3px;
         }
 
         .auth-wrapper {
@@ -172,10 +175,10 @@
     <img src="{{ asset('images/graphic.png') }}" alt="" class="auth-decor auth-decor--right">
 
     <div class="auth-page">
-        <div class="brand">
-            <div class="brand-icon"></div>
-            <div class="brand-name">SISTEM</div>
-        </div>
+        <a href="{{ route('home') }}" class="brand">
+            <span class="brand-ready">READY</span>
+            <span class="brand-dips">DIPS</span>
+        </a>
 
         <div class="auth-wrapper">
             @yield('content')

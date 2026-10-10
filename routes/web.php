@@ -56,6 +56,8 @@ Route::middleware('auth')->group(function () {
     // Profil (Orang 1) — bisa diakses semua role yang sudah login
     Route::get('/profil', [ProfileController::class, 'show'])->name('profile.show');
     Route::put('/profil', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profil/avatar', [ProfileController::class, 'updateAvatar'])->name('profile.avatar.update');
+    Route::delete('/profil/avatar', [ProfileController::class, 'deleteAvatar'])->name('profile.avatar.delete');
 });
 
 // ==========================================================

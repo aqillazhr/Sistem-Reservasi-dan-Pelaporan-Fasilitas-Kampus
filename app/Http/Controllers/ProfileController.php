@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
-
 
 class ProfileController extends Controller
 {
@@ -34,8 +34,6 @@ class ProfileController extends Controller
         $user->name = $validated['name'];
         $user->email = $validated['email'];
 
-        // Password baru bersifat opsional, kalau fieldnya dikosongin
-        // berarti user ga mau ganti password
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
@@ -43,5 +41,40 @@ class ProfileController extends Controller
         $user->save();
 
         return back()->with('status', 'Profil berhasil diperbarui.');
+    }
+
+    public function updateAvatar(Request $request)
+    {
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+        ]);
+
+        $user = $request->user();
+
+        // Hapus foto lama kalau ada
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        // Simpan foto baru
+        $path = $request->file('avatar')->store('avatars', 'public');
+        $user->avatar = $path;
+        $user->save();
+
+        return back()->with('status', 'Foto profil berhasil diperbarui.');
+    }
+
+    public function deleteAvatar(Request $request)
+    {
+        $user = $request->user();
+
+        if ($user->avatar && Storage::disk('public')->exists($user->avatar)) {
+            Storage::disk('public')->delete($user->avatar);
+        }
+
+        $user->avatar = null;
+        $user->save();
+
+        return back()->with('status', 'Foto profil berhasil dihapus.');
     }
 }
