@@ -37,42 +37,90 @@
             position: relative;
             z-index: 1;
             min-height: 100vh;
-            padding: 40px 8%;
+            padding: 40px 44px;
         }
 
+        /* Header halaman */
         .back-title {
             display: flex;
             align-items: center;
             gap: 20px;
-            margin-bottom: 25px;
+            margin-bottom: 34px;
         }
 
+        /* Tombol kembali */
         .back {
-            color: #54269a;
-            font-size: 42px;
-            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 52px;
+            height: 52px;
+            border: 1px solid #e3d3f3;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.88);
+            color: #7542b5;
+            font-size: 30px;
             line-height: 1;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(75, 43, 105, 0.06);
+            transition:
+                background-color 0.2s ease,
+                border-color 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .back:hover {
+            background: #f0e5fc;
+            border-color: #c7a7e8;
+            transform: translateX(-2px);
+        }
+
+        /* Area judul */
+        .heading-copy {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .heading-eyebrow {
+            margin-bottom: 6px;
+            color: #8752bf;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.7px;
+            line-height: 1.4;
         }
 
         h1 {
             margin: 0;
-            font-size: 30px;
             color: #321750;
+            font-size: 34px;
+            font-weight: 700;
+            line-height: 1.2;
+            letter-spacing: -0.8px;
         }
 
         .subtitle {
             margin: 8px 0 0;
-            color: #82718f;
+            color: #81718f;
             font-size: 14px;
+            line-height: 1.6;
         }
 
         .form-container {
-            max-width: 900px;
-            padding: 30px;
-            border: 1px solid #dfc9f4;
-            border-radius: 12px;
-            background: white;
-            box-shadow: 0 4px 16px rgba(65, 34, 91, 0.06);
+            position: relative;
+            width: 100%;
+            max-width: 1500px;
+            margin: 0 auto;
+            padding: 36px 38px;
+            border: 1px solid rgba(188, 151, 224, 0.35);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow:
+                0 12px 35px rgba(75, 43, 105, 0.07),
+                0 2px 8px rgba(75, 43, 105, 0.03);
+            backdrop-filter: blur(8px);
         }
 
         .form-group {
@@ -81,35 +129,50 @@
 
         label {
             display: block;
-            margin-bottom: 8px;
-            color: #3c2850;
-            font-size: 15px;
-            font-weight: 600;
+            margin-bottom: 9px;
+            color: #39234f;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.1px;
         }
 
         input,
         select,
         textarea {
+            display: block;
             width: 100%;
-            padding: 12px 14px;
-            border: 1px solid #d8c5eb;
-            border-radius: 8px;
-            background: #fdfbff;
-            color: #321750;
+            min-height: 48px;
+            padding: 13px 15px;
+            border: 1px solid #e2d5f0;
+            border-radius: 10px;
+            background: #fcfaff;
+            color: #38204f;
             font-family: inherit;
             font-size: 14px;
+            line-height: 1.5;
             outline: none;
+            transition:
+                border-color 0.2s ease,
+                box-shadow 0.2s ease,
+                background-color 0.2s ease;
+        }
+
+        input:hover,
+        select:hover,
+        textarea:hover {
+            border-color: #c4a5e5;
         }
 
         input:focus,
         select:focus,
         textarea:focus {
             border-color: #8752bf;
-            box-shadow: 0 0 0 3px rgba(135, 82, 191, 0.1);
+            background: #ffffff;
+            box-shadow: 0 0 0 4px rgba(135, 82, 191, 0.11);
         }
 
         textarea {
-            min-height: 120px;
+            min-height: 130px;
             resize: vertical;
         }
 
@@ -123,14 +186,15 @@
         /* Foto fasilitas saat ini */
         .current-photo {
             display: block;
-            width: 240px;
+            width: 280px;
             max-width: 100%;
-            height: 160px;
-            margin-top: 10px;
-            border: 1px solid #dfc9f4;
-            border-radius: 8px;
-            background: #faf7ff;
+            height: 190px;
+            margin-top: 12px;
+            border: 1px solid #e9def5;
+            border-radius: 14px;
+            background: #f7f1fd;
             object-fit: cover;
+            box-shadow: 0 6px 18px rgba(65, 34, 91, 0.08);
         }
 
         .photo-empty {
@@ -149,8 +213,34 @@
         }
 
         .photo-input {
-            padding: 10px;
-            background: #fdfbff;
+            display: block;
+            width: 100%;
+            min-height: auto;
+            margin-top: 14px;
+            padding: 12px;
+            border: 1px dashed #c7a6e8;
+            border-radius: 12px;
+            background: #faf6ff;
+            color: #6c547f;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .photo-input::file-selector-button {
+            margin-right: 14px;
+            padding: 9px 14px;
+            border: 1px solid #d8c0ef;
+            border-radius: 8px;
+            background: #eee2fb;
+            color: #633b91;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .photo-input::file-selector-button:hover {
+            background: #e2d0f7;
         }
 
         .error {
@@ -172,39 +262,50 @@
             display: flex;
             justify-content: flex-end;
             gap: 12px;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #eee5f5;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #f0e8f7;
         }
 
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-height: 42px;
-            padding: 10px 20px;
+            min-height: 44px;
+            padding: 11px 20px;
             border: 1px solid transparent;
-            border-radius: 8px;
+            border-radius: 10px;
             font-family: inherit;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 700;
             text-decoration: none;
             cursor: pointer;
+            transition:
+                background-color 0.2s ease,
+                border-color 0.2s ease,
+                transform 0.2s ease;
         }
 
         .btn-cancel {
-            border-color: #d8c5eb;
-            background: white;
-            color: #68438c;
+            border-color: #dfd0ee;
+            background: #ffffff;
+            color: #674585;
+        }
+
+        .btn-cancel:hover {
+            border-color: #bfa0df;
+            background: #f8f2fd;
         }
 
         .btn-save {
             background: #7542b5;
-            color: white;
+            color: #ffffff;
+            box-shadow: 0 4px 10px rgba(117, 66, 181, 0.16);
         }
 
         .btn-save:hover {
             background: #603195;
+            transform: translateY(-1px);
         }
 
         @media (max-width: 600px) {
@@ -212,8 +313,36 @@
                 padding: 24px 16px;
             }
 
+            .back-title {
+                align-items: flex-start;
+                gap: 13px;
+                margin-bottom: 26px;
+            }
+
+            .back {
+                width: 44px;
+                height: 44px;
+                border-radius: 13px;
+                font-size: 26px;
+            }
+
+            .heading-eyebrow {
+                font-size: 10px;
+                letter-spacing: 1.3px;
+            }
+
+            h1 {
+                font-size: 27px;
+                letter-spacing: -0.5px;
+            }
+
+            .subtitle {
+                font-size: 13px;
+            }
+
             .form-container {
-                padding: 20px;
+                padding: 22px 18px;
+                border-radius: 15px;
             }
 
             .buttons {
@@ -231,12 +360,18 @@
     <div class="page">
 
         <div class="back-title">
-            <a href="{{ route('admin.facilities.index') }}" class="back" aria-label="Kembali">&larr;</a>
+            <a href="{{ route('admin.facilities.index') }}" class="back" aria-label="Kembali ke daftar fasilitas"
+                title="Kembali ke daftar fasilitas">
+                <span aria-hidden="true">&larr;</span>
+            </a>
 
-            <div>
+            <div class="heading-copy">
+                <span class="heading-eyebrow">MANAJEMEN FASILITAS</span>
+
                 <h1>Edit Fasilitas</h1>
+
                 <p class="subtitle">
-                    Perbarui informasi fasilitas kampus.
+                    Perbarui informasi dan detail fasilitas kampus.
                 </p>
             </div>
         </div>
