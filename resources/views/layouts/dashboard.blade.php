@@ -8,7 +8,7 @@
     {{-- Google Fonts: Sora + Inter --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Aclonica&family=Abel&family=Inter:wght@500;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
 
     <style>
         /* ── Reset & base ── */
@@ -39,26 +39,25 @@
         /* Logo */
         .navbar .brand {
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 119px;
+            align-items: baseline;
             flex-shrink: 0;
-            margin-top: 15px;
-            align-self: flex-start;
+            text-decoration: none;
+            gap: 0;
         }
-        .navbar .brand-icon {
-            width: 64px;
-            height: 63px;
-            background: linear-gradient(180deg, #9747ff 0%, #bd93f8 100%);
-            border-radius: 4px;
+        .navbar .brand-ready {
+            font-family: 'Aclonica', sans-serif;
+            font-weight: 400;
+            font-size: 40px;
+            line-height: 1;
+            color: #FFFFFF;
         }
-        .navbar .brand-name {
-            font-family: 'Inter', Helvetica, sans-serif;
-            font-weight: 700;
-            color: #ffffff;
-            font-size: 16px;
-            margin-top: 6px;
-            white-space: nowrap;
+        .navbar .brand-dips {
+            font-family: 'Abel', sans-serif;
+            font-weight: 400;
+            font-size: 26px;
+            line-height: 1;
+            color: #d5bbfb;
+            margin-left: -2px;
         }
 
         /* Nav links */
@@ -261,10 +260,10 @@
 
     <nav class="navbar">
         {{-- Logo --}}
-        <div class="brand">
-            <div class="brand-icon"></div>
-            <span class="brand-name">SI Reservasi</span>
-        </div>
+        <a href="{{ route('home') }}" class="brand">
+            <span class="brand-ready">READY</span>
+            <span class="brand-dips">DIPS</span>
+        </a>
 
         {{-- Nav links: HANYA muncul kalau ada yang login. Pengunjung (belum
              login) nggak dapat menu role sama sekali, karena auth()->user()
