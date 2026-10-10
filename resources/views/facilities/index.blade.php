@@ -20,8 +20,8 @@
         }
 
         /* =========================
-                   FILTER
-                ========================= */
+                       FILTER
+                    ========================= */
         .filter-box {
             background: white;
             border-radius: 12px;
@@ -117,8 +117,8 @@
         }
 
         /* =========================
-                   HASIL
-                ========================= */
+                       HASIL
+                    ========================= */
         .search-page hr {
             border: none;
             border-top: 1px solid #e0d5ee;
@@ -188,8 +188,8 @@
         }
 
         /* =========================
-                   RESPONSIVE
-                ========================= */
+                       RESPONSIVE
+                    ========================= */
         @media (max-width: 1000px) {
             .filter-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -222,6 +222,7 @@
             border-radius: 8px;
             padding: 24px;
         }
+
         .facility-results-wrap .facility-card:last-child {
             margin-bottom: 0;
         }
@@ -413,109 +414,113 @@
 
         <div class="facility-results-wrap">
 
-        @forelse ($facilities as $facility)
-            <div class="facility-card">
+            @forelse ($facilities as $facility)
+                <div class="facility-card">
 
 
-                {{-- Foto --}}
+                    {{-- Foto --}}
 
-                <div class="facility-image">
+                    <div class="facility-image">
 
-                    @if ($facility->photos->first())
-                        <img src="{{ asset('storage/' . $facility->photos->first()->file_path) }}"
-                            alt="{{ $facility->name }}">
-                    @else
-                        <div class="no-image"></div>
-                    @endif
+                        @if ($facility->photos->first())
+                            <img src="{{ asset('storage/' . $facility->photos->first()->file_path) }}"
+                                alt="{{ $facility->name }}">
+                        @else
+                            <div class="no-image"></div>
+                        @endif
 
-                </div>
-
-
-                {{-- Informasi --}}
-
-                <div class="facility-info">
-
-                    <h2>
-                        {{ $facility->name }}
-                    </h2>
+                    </div>
 
 
-                    <div class="facility-details">
+                    {{-- Informasi --}}
 
-                        <div>
-                            <span>Tipe</span>
+                    <div class="facility-info">
 
-                            <strong>
-                                {{ $facility->type->name ?? '-' }}
-                            </strong>
-                        </div>
+                        <h2>
+                            {{ $facility->name }}
+                        </h2>
 
 
-                        <div>
-                            <span>Kapasitas</span>
+                        <div class="facility-details">
 
-                            <strong>
-                                {{ $facility->capacity }} orang
-                            </strong>
-                        </div>
+                            <div>
+                                <span>Tipe</span>
 
-
-                        <div>
-                            <span>Status</span>
-
-                            <strong>
-                                {{ ucfirst($facility->status) }}
-                            </strong>
-                        </div>
+                                <strong>
+                                    {{ $facility->type->name ?? '-' }}
+                                </strong>
+                            </div>
 
 
-                        <div>
-                            <span>Ketersediaan</span>
-                            
-                            <strong>
-                                @if ($facility->status !== 'aktif')
-                                    Tidak tersedia
-                                @elseif ($facility->reservations->isNotEmpty())
-                                    Tidak tersedia
-                                @else
-                                    Tersedia
-                                @endif
-                            </strong>
-                        </div>
+                            <div>
+                                <span>Kapasitas</span>
+
+                                <strong>
+                                    @if ($facility->capacity !== null)
+                                        {{ $facility->capacity }} orang
+                                    @else
+                                        -
+                                    @endif
+                                </strong>
+                            </div>
 
 
-                        <div>
-                            <span>Lokasi</span>
+                            <div>
+                                <span>Status</span>
 
-                            <strong>
-                                {{ $facility->location->ruangan ?? '-' }}
-                            </strong>
+                                <strong>
+                                    {{ ucfirst($facility->status) }}
+                                </strong>
+                            </div>
+
+
+                            <div>
+                                <span>Ketersediaan</span>
+
+                                <strong>
+                                    @if ($facility->status !== 'aktif')
+                                        Tidak tersedia
+                                    @elseif ($facility->reservations->isNotEmpty())
+                                        Tidak tersedia
+                                    @else
+                                        Tersedia
+                                    @endif
+                                </strong>
+                            </div>
+
+
+                            <div>
+                                <span>Lokasi</span>
+
+                                <strong>
+                                    {{ $facility->location->ruangan ?? '-' }}
+                                </strong>
+                            </div>
+
                         </div>
 
                     </div>
 
+
+                    {{-- Panah / detail --}}
+
+                    <a href="{{ route('facilities.show', [
+                        'facility' => $facility,
+                        'from' => url()->full(),
+                    ]) }}"
+                        class="facility-arrow">
+                        ›
+                    </a>
+
                 </div>
 
 
-                {{-- Panah / detail --}}
+            @empty
 
-                <a href="{{ route('facilities.show', [
-                    'facility' => $facility,
-                    'from' => url()->full(),
-                ]) }}"
-                    class="facility-arrow">
-                    ›
-                </a>
-
-            </div>
-
-
-        @empty
-
-            <p>
-                Tidak ada fasilitas yang ditemukan.
-            </p>
-        @endforelse
+                <p>
+                    Tidak ada fasilitas yang ditemukan.
+                </p>
+            @endforelse
 
         </div>
 

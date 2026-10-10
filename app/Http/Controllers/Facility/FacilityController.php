@@ -377,7 +377,7 @@ class FacilityController extends Controller
             ['ruang kelas', 'aula', 'laboratorium', 'lapangan'],
             true
         );
-        
+
         // Validasi input form.
         $validated = $request->validate([
             'fakultas' => [
@@ -568,12 +568,21 @@ class FacilityController extends Controller
 
     public function update(Request $request, Facility $facility)
     {
+        $type = FacilityType::find($request->input('type_id'));
+
+        $capacityRequired = $type && in_array(
+            mb_strtolower(trim($type->name)),
+            ['ruang kelas', 'aula', 'laboratorium', 'lapangan'],
+            true
+        );
         // Validasi data fasilitas dan foto baru jika diunggah.
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type_id' => ['required', 'exists:facility_types,id'],
             'location_id' => ['required', 'exists:locations,id'],
-            'capacity' => ['required', 'integer', 'min:1'],
+            'capacity' => $capacityRequired
+                ? ['required', 'integer', 'min:1']
+                : ['nullable', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
             'photo' => [
                 'nullable',
@@ -583,9 +592,10 @@ class FacilityController extends Controller
             ],
         ]);
 
-        // Pisahkan file foto dari data fasilitas.
         $photo = $validated['photo'] ?? null;
         unset($validated['photo']);
+
+        $validated['capacity'] = $validated['capacity'] ?? null;
 
         // Perbarui informasi utama fasilitas.
         $facility->update($validated);
@@ -665,9 +675,6 @@ class FacilityController extends Controller
             ->whereHas('location', function ($q) use ($faculty) {
                 $q->where('fakultas', $faculty);
             })
-
-            // Tetap sembunyikan nonaktif dari halaman fakultas
-            ->where('status', '!=', 'nonaktif')
 
             // FILTER TIPE
             ->when($typeId, function ($q) use ($typeId) {
@@ -749,7 +756,6 @@ class FacilityController extends Controller
     public function byBuilding(string $building)
     {
         $facilities = Facility::query()
-            ->where('status', '!=', 'nonaktif')
             ->whereHas('location', function ($q) use ($building) {
                 $q->where('scope_level', 'universitas')
                     ->where(function ($q2) use ($building) {

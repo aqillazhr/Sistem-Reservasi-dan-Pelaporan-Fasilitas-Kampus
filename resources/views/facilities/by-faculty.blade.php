@@ -299,6 +299,7 @@
                             <option value="">Semua status</option>
                             <option value="aktif" @selected($status === 'aktif')>Aktif</option>
                             <option value="dalam perbaikan" @selected($status === 'dalam perbaikan')>Dalam Perbaikan</option>
+                            <option value="nonaktif" @selected($status === 'nonaktif')>Nonaktif</option>
                         </select>
                     </div>
 

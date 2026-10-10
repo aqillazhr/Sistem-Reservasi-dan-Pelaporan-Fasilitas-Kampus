@@ -418,7 +418,8 @@
                         <option value="">Pilih tipe fasilitas</option>
 
                         @foreach ($types as $type)
-                            <option value="{{ $type->id }}" @selected((string) old('type_id', $facility->type_id) === (string) $type->id)>
+                            <option value="{{ $type->id }}" data-name="{{ strtolower(trim($type->name)) }}"
+                                @selected((string) old('type_id', $facility->type_id) === (string) $type->id)>
                                 {{ $type->name }}
                             </option>
                         @endforeach
@@ -483,10 +484,18 @@
 
                 {{-- Kapasitas --}}
                 <div class="form-group">
-                    <label for="capacity">Kapasitas</label>
+                    <label for="capacity" id="capacity-label">
+                        Kapasitas (Opsional)
+                    </label>
 
                     <input type="number" id="capacity" name="capacity"
-                        value="{{ old('capacity', $facility->capacity) }}" min="1" required>
+                        value="{{ old('capacity', $facility->capacity) }}" min="1"
+                        placeholder="Masukkan kapasitas fasilitas">
+
+                    <p class="field-note">
+                        Wajib diisi untuk Ruang Kelas, Aula, Laboratorium, dan Lapangan.
+                        Untuk tipe Alat, kapasitas bersifat opsional.
+                    </p>
 
                     @error('capacity')
                         <div class="error">{{ $message }}</div>
@@ -550,6 +559,43 @@
             </form>
         </div>
     </div>
+    <script>
+        const typeSelect = document.getElementById('type_id');
+        const capacity = document.getElementById('capacity');
+        const capacityLabel = document.getElementById('capacity-label');
+
+        const requiredTypes = [
+            'ruang kelas',
+            'aula',
+            'laboratorium',
+            'lapangan'
+        ];
+
+        function updateCapacityRequirement() {
+            const selectedOption =
+                typeSelect.options[typeSelect.selectedIndex];
+
+            const typeName = (
+                selectedOption?.dataset.name || ''
+            ).trim().toLowerCase();
+
+            const isRequired = requiredTypes.includes(typeName);
+
+            capacity.required = isRequired;
+
+            capacityLabel.textContent = isRequired ?
+                'Kapasitas (Wajib)' :
+                'Kapasitas (Opsional)';
+        }
+
+        typeSelect.addEventListener(
+            'change',
+            updateCapacityRequirement
+        );
+
+        // Terapkan aturan berdasarkan tipe fasilitas saat halaman dibuka.
+        updateCapacityRequirement();
+    </script>
 </body>
 
 </html>
