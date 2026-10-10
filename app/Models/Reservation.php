@@ -43,7 +43,7 @@ class Reservation extends Model
 
     public function facility()
     {
-        return $this->belongsTo(Facility::class);
+        return $this->belongsTo(Facility::class)->withTrashed();
     }
 
     public function statusLogs()

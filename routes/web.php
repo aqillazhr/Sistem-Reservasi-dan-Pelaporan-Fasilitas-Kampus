@@ -140,6 +140,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
         ->name('facilities.edit');
     Route::post('/fasilitas', [FacilityController::class, 'store'])->name('facilities.store');
     Route::put('/fasilitas/{facility}', [FacilityController::class, 'update'])->name('facilities.update');
+    // Hapus fasilitas (soft delete)
+    Route::delete('/fasilitas/{facility}', [FacilityController::class, 'destroy'])
+        ->name('facilities.destroy');
     // Aktifkan / nonaktifkan fasilitas
     Route::patch(
         '/fasilitas/{facility}/toggle-active',
@@ -151,5 +154,5 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/rekap/export/csv', [AdminReportController::class, 'exportCsv'])->name('reports.export.csv');
     Route::get('/rekap/export/excel', [AdminReportController::class, 'exportExcel'])->name('reports.export.excel');
     Route::get('/rekap/export/pdf', [AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
-    
+
 });

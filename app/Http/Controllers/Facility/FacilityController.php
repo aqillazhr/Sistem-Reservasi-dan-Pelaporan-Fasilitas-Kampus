@@ -644,6 +644,96 @@ class FacilityController extends Controller
             ->with('status', 'Fasilitas berhasil diperbarui.');
     }
 
+    public function destroy(Request $request, Facility $facility)
+    {
+        // Periksa aturan minimum fasilitas untuk fakultas dan prodi.
+        $location = $facility->location;
+
+        if ($location && $location->scope_level === 'fakultas') {
+
+            // Pastikan prodi masih memiliki fasilitas lain.
+            if ($location->prodi !== null) {
+                $hasOtherFacilitiesInProgram = Facility::query()
+                    ->where('id', '!=', $facility->id)
+                    ->whereHas('location', function ($query) use ($location) {
+                        $query->where('scope_level', 'fakultas')
+                            ->where('fakultas', $location->fakultas)
+                            ->where('prodi', $location->prodi);
+                    })
+                    ->exists();
+
+                if (! $hasOtherFacilitiesInProgram) {
+                    return redirect()
+                        ->route('admin.facilities.index', $request->only(['search', 'page']))
+                        ->with(
+                            'status',
+                            'Fasilitas tidak dapat dihapus karena merupakan fasilitas terakhir di prodi '.
+                            $location->prodi.'. Setiap prodi wajib memiliki minimal satu fasilitas.'
+                        );
+                }
+            }
+
+            // Pastikan fakultas masih memiliki fasilitas lain.
+            $hasOtherFacilitiesInFaculty = Facility::query()
+                ->where('id', '!=', $facility->id)
+                ->whereHas('location', function ($query) use ($location) {
+                    $query->where('scope_level', 'fakultas')
+                        ->where('fakultas', $location->fakultas);
+                })
+                ->exists();
+
+            if (! $hasOtherFacilitiesInFaculty) {
+                return redirect()
+                    ->route('admin.facilities.index', $request->only(['search', 'page']))
+                    ->with(
+                        'status',
+                        'Fasilitas tidak dapat dihapus karena merupakan fasilitas terakhir di fakultas '.
+                        $location->fakultas.'. Setiap fakultas wajib memiliki minimal satu fasilitas.'
+                    );
+            }
+        }
+
+        // Cegah penghapusan jika masih ada reservasi
+        // berstatus menunggu atau disetujui pada hari ini/mendatang.
+        $today = now()->toDateString();
+        $currentTime = now()->format('H:i:s');
+
+        $hasUpcomingReservations = $facility->reservations()
+            ->whereIn('status', ['pending', 'approved'])
+            ->where(function ($query) use ($today, $currentTime) {
+                $query->whereDate('reservation_date', '>', $today)
+                    ->orWhere(function ($todayQuery) use ($today, $currentTime) {
+                        $todayQuery
+                            ->whereDate('reservation_date', $today)
+                            ->where('end_time', '>', $currentTime);
+                    });
+            })
+            ->exists();
+
+        if ($hasUpcomingReservations) {
+            return redirect()
+                ->route('admin.facilities.index', $request->only(['search', 'page']))
+                ->with(
+                    'status',
+                    'Fasilitas tidak dapat dihapus karena masih memiliki reservasi yang menunggu atau disetujui. Selesaikan atau batalkan reservasi terlebih dahulu.'
+                );
+        }
+
+        // Simpan nama sebelum melakukan soft delete.
+        $facilityName = $facility->name;
+
+        // Karena model Facility menggunakan SoftDeletes,
+        // data tidak dihapus permanen dari database.
+        $facility->delete();
+
+        return redirect()
+            ->route('admin.facilities.index', $request->only(['search', 'page']))
+            ->with(
+                'status',
+                'Fasilitas "'.$facilityName.'" berhasil dihapus. Riwayat reservasi dan laporan tetap disimpan.'
+            );
+    }
+
     public function byFaculty(Request $request, string $faculty)
     {
         // FILTER

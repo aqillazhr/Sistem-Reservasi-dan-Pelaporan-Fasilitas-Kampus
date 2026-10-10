@@ -295,6 +295,29 @@
             transition: background-color 0.2s, color 0.2s;
         }
 
+        /* Tombol Hapus */
+        .admin-facilities .delete-button {
+            padding: 7px 12px;
+            border: 1px solid #dc2626;
+            border-radius: 7px;
+            background: #dc2626;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            transition: background-color 0.2s, border-color 0.2s;
+        }
+
+        .admin-facilities .delete-button:hover {
+            background: #b91c1c;
+            border-color: #b91c1c;
+        }
+
         /* Tombol aksi dalam satu baris */
         .admin-facilities .action-buttons {
             display: flex;
@@ -567,6 +590,17 @@
                                                 Dalam Perbaikan
                                             </button>
                                         @endif
+
+                                        {{-- Hapus fasilitas --}}
+                                        <form action="{{ route('admin.facilities.destroy', $facility) }}" method="POST"
+                                            onsubmit="return confirm('Yakin ingin menghapus fasilitas ini? Riwayat reservasi dan laporan tetap disimpan.')">
+                                            @csrf
+                                            @method('DELETE')
+
+                                            <button type="submit" class="delete-button">
+                                                Hapus
+                                            </button>
+                                        </form>
 
                                     </div>
                                 </td>
