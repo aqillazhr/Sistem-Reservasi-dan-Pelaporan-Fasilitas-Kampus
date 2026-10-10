@@ -9,17 +9,31 @@
         }
 
         /* =========================
-                                                                                               CONTENT
-                                                                                            ========================= */
+                                                                                                                                   CONTENT
+                                                                                                                                ========================= */
 
         .container {
             padding: 20px 0 40px;
         }
 
         .back-button {
-            font-size: 34px;
-            color: #54269a;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #511F91;
             text-decoration: none;
+            font-size: 48px;
+            line-height: 1;
+            flex-shrink: 0;
+            padding: 0;
+            background: transparent;
+            transform: translateY(-4px);
+            transition: color 0.15s ease;
+        }
+
+        .back-button:hover {
+            color: #8f6bc1;
+            background: transparent;
         }
 
         h1,
@@ -39,8 +53,8 @@
 
 
         /* =========================
-                                                                                               DETAIL CARD
-                                                                                            ========================= */
+                                                                                                                                   DETAIL CARD
+                                                                                                                                ========================= */
 
         .detail-card {
             background: white;
@@ -118,13 +132,26 @@
 
         .detail-header {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
             margin-bottom: 25px;
         }
 
+        .detail-header-title-row {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+
         .detail-header h1 {
-            margin: 5px 0 25px;
+            margin: 0;
+            line-height: 1.2;
+        }
+
+        .detail-header-actions {
+            display: flex;
+            justify-content: flex-end;
         }
 
         .reserve-button {
@@ -143,8 +170,8 @@
         }
 
         /* =========================
-                                                                                               JADWAL
-                                                                                            ========================= */
+                                                                                                                                   JADWAL
+                                                                                                                                ========================= */
 
         .schedule-header {
             position: relative;
@@ -196,8 +223,8 @@
 
 
         /* =========================
-                                                                                               CALENDAR
-                                                                                            ========================= */
+                                                                                                                                   CALENDAR
+                                                                                                                                ========================= */
 
         .calendar {
             display: none;
@@ -322,8 +349,8 @@
 
 
         /* =========================
-                                                                                               AVAILABILITY
-                                                                                            ========================= */
+                                                                                                                                   AVAILABILITY
+                                                                                                                                ========================= */
 
         .availability {
             margin-top: 25px;
@@ -460,41 +487,22 @@
 
         <!-- BACK -->
 
-        <a href="{{ request('from', route('facilities.index')) }}" class="back-button">
-            ←
-        </a>
-
-
         <div class="detail-header">
-            <h1>Detail Fasilitas</h1>
+            <div class="detail-header-title-row">
+                <a href="{{ request('from', route('facilities.index')) }}" class="back-button" aria-label="Kembali">
+                    &lsaquo;
+                </a>
+
+                <h1>Detail Fasilitas</h1>
+            </div>
 
             @auth
                 @if (auth()->user()->role === 'pengguna')
-                    {{--
-                        TODO (Orang 2, koordinasi dengan Orang 3):
-                        Ganti tombol <a> di bawah ini jadi modal langsung,
-                        tidak usah pindah halaman ke reservations.create lagi.
-
-                        1. Sertakan partial: reservations.partials.booking-modal
-                           (boleh ditaruh di mana saja di halaman ini, dekat
-                           akhir file juga boleh — lihat komentar TODO kedua
-                           di bagian bawah file ini).
-
-                        2. Ganti tag <a href="..."> di bawah jadi <button
-                           type="button">, dengan onclick yang memanggil
-                           fungsi JS global: openReservationModal($facility->id)
-                           Tidak perlu argumen kedua (tanggal) — defaultnya
-                           otomatis hari ini.
-
-                        Kondisi @auth + role==='pengguna' ini TETAP DIPAKAI,
-                        cuma isi tombolnya yang berubah dari link jadi trigger
-                        modal. Jangan bikin modal/JS baru sendiri di sini —
-                        semua logikanya (fetch jadwal, validasi, submit) sudah
-                        lengkap di partial itu.
-                    --}}
-                    <button type="button" class="reserve-button" onclick="openReservationModal({{ $facility->id }})">
-                        Ajukan Reservasi
-                    </button>
+                    <div class="detail-header-actions">
+                        <button type="button" class="reserve-button" onclick="openReservationModal({{ $facility->id }})">
+                            Ajukan Reservasi
+                        </button>
+                    </div>
                 @endif
             @endauth
         </div>
@@ -502,8 +510,8 @@
 
 
         <!-- =========================
-                                                                                                 DETAIL FASILITAS
-                                                                                            ========================= -->
+        DETAIL FASILITAS
+        ========================= -->
 
         <div class="detail-card">
 
@@ -628,8 +636,8 @@
 
 
         <!-- =========================
-                                                                                                 JADWAL
-                                                                                            ========================= -->
+                                                                                                                                     JADWAL
+                                                                                                                                ========================= -->
 
         <h2>
             Jadwal Fasilitas
@@ -646,8 +654,8 @@
 
 
             <!-- =========================
-                                                                                                     CALENDAR
-                                                                                                ========================= -->
+                                                                                                                                         CALENDAR
+                                                                                                                                    ========================= -->
 
             <div id="calendar" class="calendar">
 
@@ -690,8 +698,8 @@
 
 
         <!-- =========================
-                                                                                                 AVAILABILITY
-                                                                                            ========================= -->
+                                                                                                                                     AVAILABILITY
+                                                                                                                                ========================= -->
 
         <div class="availability">
 
@@ -1001,8 +1009,8 @@
 
 
     <!-- =========================
-                                                                                             JAVASCRIPT CALENDAR
-                                                                                        ========================= -->
+                                                                                                                                 JAVASCRIPT CALENDAR
+                                                                                                                            ========================= -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

@@ -18,17 +18,18 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 36px;
-            height: 36px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             color: #511F91;
             text-decoration: none;
-            font-size: 22px;
+            font-size: 29px;
             flex-shrink: 0;
+            transition: background-color 0.15s ease;
         }
 
         .group-header__back:hover {
-            background: #F0E6FF;
+            background: #E8D8FF;
         }
 
         .group-header h1 {
@@ -220,11 +221,16 @@
         }
 
         .facility-card__arrow {
-            color: #511F91;
-            opacity: .6;
-            font-size: 28px;
+            font-size: 60px;
+            color: #8f6bc1;
             text-decoration: none;
+            padding: 20px;
+            line-height: 1;
             flex-shrink: 0;
+        }
+
+        .facility-card__arrow:hover {
+            color: #54269a;
         }
 
         .empty-note {
@@ -255,7 +261,8 @@
 
 @section('content')
     <div class="group-header">
-        <a href="{{ route('pengguna.dashboard') }}" class="group-header__back" aria-label="Kembali ke dashboard">&lsaquo;</a>
+        <a href="{{ auth()->check() && auth()->user()->role === 'pengguna' ? route('pengguna.dashboard') : route('home') }}"
+            class="group-header__back" aria-label="Kembali ke beranda">&lsaquo;</a>
         <h1>{{ $faculty }}</h1>
     </div>
 

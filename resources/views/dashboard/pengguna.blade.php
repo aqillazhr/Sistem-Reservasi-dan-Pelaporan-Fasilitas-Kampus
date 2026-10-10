@@ -1,127 +1,168 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Dashboard Saya')
+@section('title', auth()->check() ? 'Dashboard Saya' : 'Beranda Fasilitas')
 
 @push('styles')
-<style>
-    .pengguna-title {
-        font-family: 'Sora', Helvetica, sans-serif;
-        font-weight: 700;
-        font-size: 46px;
-        color: #501e91;
-        margin: 0 0 8px;
-    }
+    <style>
+        .pengguna-title {
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-weight: 700;
+            font-size: 46px;
+            color: #501e91;
+            margin: 0 0 8px;
+        }
 
-    .dashboard-summary-row {
-        display: flex;
-        align-items: flex-start;
-        gap: 24px;
-    }
-    
-    .dashboard-section-title {
-        font-family: 'Sora', Helvetica, sans-serif;
-        font-weight: 700;
-        font-size: 32px;
-        color: #511F91;
-        margin: 32px 0 16px;
-    }
+        .dashboard-summary-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 24px;
+        }
 
-    .facility-groups-wrap {
-        background: rgba(213, 187, 251, 0.6);
-        border-radius: 8px;
-        padding: 24px;
-    }
+        .visitor-intro {
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-size: 16px;
+            color: #5b4a78;
+            margin: 0 0 24px;
+        }
 
-    .facility-list {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
+        .dashboard-section-title {
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-weight: 700;
+            font-size: 32px;
+            color: #511F91;
+            margin: 32px 0 16px;
+        }
 
-    .facility-group-card {
-        display: flex;
-        align-items: center;
-        gap: 28px;
-        background: #fff;
-        border-radius: 7px;
-        padding: 20px 32px;
-        text-decoration: none;
-        transition: box-shadow .15s;
-    }
-    .facility-group-card:hover { box-shadow: 0 4px 14px rgba(38,15,69,.12); }
+        .facility-groups-wrap {
+            background: rgba(213, 187, 251, 0.6);
+            border-radius: 8px;
+            padding: 24px;
+        }
 
-    .facility-group-card__thumb {
-        width: 160px;
-        height: 120px;
-        background: #D9D9D9;
-        border-radius: 5px;
-        flex-shrink: 0;
-        object-fit: cover;
-    }
+        .facility-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-    .facility-group-card__body { flex: 1; min-width: 0; }
-    .facility-group-card__name {
-        font-family: 'Sora', Helvetica, sans-serif;
-        font-weight: 700;
-        font-size: 24px;
-        color: #000;
-        margin: 0 0 6px;
-    }
-    .facility-group-card__meta {
-        font-family: 'Sora', Helvetica, sans-serif;
-        font-weight: 400;
-        font-size: 18px;
-        color: #000;
-        margin: 0;
-    }
+        .facility-group-card {
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            background: #fff;
+            border-radius: 7px;
+            padding: 20px 32px;
+            text-decoration: none;
+            transition: box-shadow .15s;
+        }
 
-    .facility-group-card__arrow {
-        font-size: 32px;
-        color: #63220E;
-        flex-shrink: 0;
-        line-height: 1;
-    }
+        .facility-group-card:hover {
+            box-shadow: 0 4px 14px rgba(38, 15, 69, .12);
+        }
 
-    .empty-note { color: #6b5a87; font-size: 14px; }
+        .facility-group-card__thumb {
+            width: 160px;
+            height: 120px;
+            background: #D9D9D9;
+            border-radius: 5px;
+            flex-shrink: 0;
+            object-fit: cover;
+        }
 
-    .tbl-pager {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 12px;
-        margin-top: 20px;
-    }
-    .tbl-pager button {
-        padding: 8px 22px;
-        border: 1px solid #bd93f8;
-        border-radius: 8px;
-        background: #fff;
-        color: #501e91;
-        font-family: 'Sora', Helvetica, sans-serif;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-    }
-    .tbl-pager button:hover { background: #eee7f7; }
-    .tbl-pager button:disabled { opacity: .4; cursor: not-allowed; }
-    .tbl-pager-info { font-size: 13px; color: #5b4a78; }
-</style>
+        .facility-group-card__body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .facility-group-card__name {
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-weight: 700;
+            font-size: 24px;
+            color: #000;
+            margin: 0 0 6px;
+        }
+
+        .facility-group-card__meta {
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-weight: 400;
+            font-size: 18px;
+            color: #000;
+            margin: 0;
+        }
+
+        .facility-group-card__arrow {
+            font-size: 60px;
+            color: #8f6bc1;
+            text-decoration: none;
+            padding: 20px;
+            flex-shrink: 0;
+            line-height: 1;
+            transition: color 0.15s ease;
+        }
+
+        .facility-group-card:hover .facility-group-card__arrow {
+            color: #54269a;
+        }
+
+        .empty-note {
+            color: #6b5a87;
+            font-size: 14px;
+        }
+
+        .tbl-pager {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .tbl-pager button {
+            padding: 8px 22px;
+            border: 1px solid #bd93f8;
+            border-radius: 8px;
+            background: #fff;
+            color: #501e91;
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tbl-pager button:hover {
+            background: #eee7f7;
+        }
+
+        .tbl-pager button:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .tbl-pager-info {
+            font-size: 13px;
+            color: #5b4a78;
+        }
+    </style>
 @endpush
 
+
 @section('content')
-    <h1 class="pengguna-title">Dashboard Saya</h1>
+    @auth
+        <h1 class="pengguna-title">Dashboard Saya</h1>
 
-    <div class="dashboard-summary-row">
-        {{-- Reservasi (Orang 3) --}}
-        <x-dashboard.reservation-summary />
+        <div class="dashboard-summary-row">
+            {{-- Reservasi (Orang 3) --}}
+            <x-dashboard.reservation-summary />
 
-        {{-- Laporan (Orang 4) --}}
-        <x-dashboard.report-summary
-            :reports="$reports"
-            :new-reports="$newReports"
-            :processing-reports="$processingReports"
-            :total-reports="$totalReports"/>
-    </div>
+            {{-- Laporan (Orang 4) --}}
+            <x-dashboard.report-summary :reports="$reports" :new-reports="$newReports" :processing-reports="$processingReports" :total-reports="$totalReports" />
+        </div>
+    @else
+        <h1 class="pengguna-title">Selamat Datang</h1>
+        <p class="visitor-intro">
+            Jelajahi fasilitas kampus berdasarkan fakultas atau gedung.
+        </p>
+    @endauth
 
     <h2 class="dashboard-section-title">Semua Fasilitas</h2>
 
@@ -129,17 +170,19 @@
         <div class="facility-groups-wrap">
             <div class="facility-list" id="facilityList">
                 @foreach ($facilityGroups as $i => $group)
-                    <a href="{{ $group->url }}" class="facility-group-card fg-item" data-index="{{ $i }}" style="{{ $i >= 5 ? 'display:none;' : '' }}">
+                    <a href="{{ $group->url }}" class="facility-group-card fg-item" data-index="{{ $i }}"
+                        style="{{ $i >= 5 ? 'display:none;' : '' }}">
                         @if ($group->thumbnail)
-                            <img src="{{ asset('storage/'.$group->thumbnail) }}"
-                                 alt="{{ $group->name }}" class="facility-group-card__thumb">
+                            <img src="{{ asset('storage/' . $group->thumbnail) }}" alt="{{ $group->name }}"
+                                class="facility-group-card__thumb">
                         @else
                             <div class="facility-group-card__thumb"></div>
                         @endif
 
                         <div class="facility-group-card__body">
                             <p class="facility-group-card__name">{{ $group->name }}</p>
-                            <p class="facility-group-card__meta">{{ $group->available }}/{{ $group->total }} Fasilitas Tersedia</p>
+                            <p class="facility-group-card__meta">{{ $group->available }}/{{ $group->total }} Fasilitas
+                                Tersedia</p>
                         </div>
 
                         <span class="facility-group-card__arrow" aria-hidden="true">&rsaquo;</span>
@@ -160,26 +203,39 @@
     @endif
 
     <script>
-    (function () {
-        var items = document.querySelectorAll('.fg-item');
-        if (items.length <= 5) return;
-        var perPage = 5, page = 0, totalPages = Math.ceil(items.length / perPage);
-        var prev = document.getElementById('fgPrev');
-        var next = document.getElementById('fgNext');
-        var info = document.getElementById('fgInfo');
+        (function() {
+            var items = document.querySelectorAll('.fg-item');
+            if (items.length <= 5) return;
+            var perPage = 5,
+                page = 0,
+                totalPages = Math.ceil(items.length / perPage);
+            var prev = document.getElementById('fgPrev');
+            var next = document.getElementById('fgNext');
+            var info = document.getElementById('fgInfo');
 
-        function render() {
-            var start = page * perPage, end = start + perPage;
-            items.forEach(function (el, i) {
-                el.style.display = (i >= start && i < end) ? '' : 'none';
+            function render() {
+                var start = page * perPage,
+                    end = start + perPage;
+                items.forEach(function(el, i) {
+                    el.style.display = (i >= start && i < end) ? '' : 'none';
+                });
+                prev.disabled = page === 0;
+                next.disabled = page >= totalPages - 1;
+                info.textContent = (page + 1) + ' / ' + totalPages;
+            }
+            prev.addEventListener('click', function() {
+                if (page > 0) {
+                    page--;
+                    render();
+                }
             });
-            prev.disabled = page === 0;
-            next.disabled = page >= totalPages - 1;
-            info.textContent = (page + 1) + ' / ' + totalPages;
-        }
-        prev.addEventListener('click', function () { if (page > 0) { page--; render(); } });
-        next.addEventListener('click', function () { if (page < totalPages - 1) { page++; render(); } });
-        render();
-    })();
+            next.addEventListener('click', function() {
+                if (page < totalPages - 1) {
+                    page++;
+                    render();
+                }
+            });
+            render();
+        })();
     </script>
 @endsection

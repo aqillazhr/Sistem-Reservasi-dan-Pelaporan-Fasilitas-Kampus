@@ -13,21 +13,9 @@ use Illuminate\Support\Facades\Route;
 // ==========================================================
 // PUBLIC (Pengunjung, tanpa login)
 // ==========================================================
-// Landing: tamu diarahkan ke login, yang sudah login langsung ke dashboard sesuai role.
-// Pengunjung tetap bisa melihat daftar fasilitas lewat /fasilitas (tanpa login).
-Route::get('/', function () {
-    $user = auth()->user();
-
-    if (! $user) {
-        return redirect()->route('login');
-    }
-
-    return redirect()->route(match ($user->role) {
-        'admin' => 'admin.dashboard',
-        'petugas' => 'petugas.dashboard',
-        default => 'pengguna.dashboard',
-    });
-})->name('home');
+// Landing: pengunjung melihat halaman utama,
+// pengguna login diarahkan ke dashboard sesuai role.
+Route::get('/', [DashboardController::class, 'home'])->name('home');
 Route::get('/fasilitas', [FacilityController::class, 'index'])->name('facilities.index');
 
 Route::get('/fasilitas/fakultas/{faculty}', [FacilityController::class, 'byFaculty'])->name('facilities.by-faculty');

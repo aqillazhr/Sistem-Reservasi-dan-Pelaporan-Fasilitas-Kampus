@@ -6,9 +6,66 @@ use App\Models\Facility;
 use App\Models\Report;
 use App\Models\Reservation;
 use App\Models\User;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
+    public function home()
+    {
+        $user = auth()->user();
+
+        // User yang sudah login diarahkan ke dashboard sesuai role.
+        if ($user) {
+            return redirect()->route(match ($user->role) {
+                'admin' => 'admin.dashboard',
+                'petugas' => 'petugas.dashboard',
+                default => 'pengguna.dashboard',
+            });
+        }
+
+        // Ambil ringkasan fasilitas berdasarkan fakultas.
+        $facultyGroups = Facility::query()
+            ->where('status', '!=', 'nonaktif')
+            ->whereHas('location', fn ($q) => $q->where('scope_level', 'fakultas')
+            )
+            ->with(['location', 'photos'])
+            ->get()
+            ->groupBy(fn ($facility) => $facility->location->fakultas
+            )
+            ->sortKeys()
+            ->map(fn ($facilities, $fakultas) => $this->summarizeGroup(
+                $facilities,
+                $fakultas,
+                'facilities.by-faculty'
+            )
+            )
+            ->values();
+
+        // Ambil ringkasan fasilitas berdasarkan gedung universitas.
+        $buildingGroups = Facility::query()
+            ->where('status', '!=', 'nonaktif')
+            ->whereHas('location', fn ($q) => $q->where('scope_level', 'universitas')
+            )
+            ->with(['location', 'photos'])
+            ->get()
+            ->groupBy(fn ($facility) => $facility->location->gedung
+                ?? $facility->location->ruangan
+                ?? 'Fasilitas Lainnya'
+            )
+            ->sortKeys()
+            ->map(fn ($facilities, $building) => $this->summarizeGroup(
+                $facilities,
+                $building,
+                'facilities.by-building'
+            )
+            )
+            ->values();
+
+        $facilityGroups = $facultyGroups->concat($buildingGroups);
+
+        return view('dashboard.pengguna', compact('facilityGroups'));
+    }
+
     public function admin()
     {
         $totalFacilities = Facility::count();
@@ -45,7 +102,7 @@ class DashboardController extends Controller
             $dashboardMonth = max($possibleMonths);
         }
 
-        $monthStart = \Carbon\Carbon::createFromFormat(
+        $monthStart = Carbon::createFromFormat(
             'Y-m',
             $dashboardMonth
         )->startOfMonth();
@@ -99,13 +156,13 @@ class DashboardController extends Controller
                         $facility->id
                     ) as $reservation
                 ) {
-                    $start = \Carbon\Carbon::parse(
+                    $start = Carbon::parse(
                         $reservation->reservation_date
                     )->setTimeFromTimeString(
                         $reservation->start_time
                     );
 
-                    $end = \Carbon\Carbon::parse(
+                    $end = Carbon::parse(
                         $reservation->reservation_date
                     )->setTimeFromTimeString(
                         $reservation->end_time
@@ -125,8 +182,7 @@ class DashboardController extends Controller
 
                 return [
                     'name' => $facility->name,
-                    'location' =>
-                        $facility->location->gedung
+                    'location' => $facility->location->gedung
                         ?? $facility->location->fakultas
                         ?? 'Universitas',
                     'percentage' => $percentage,
@@ -138,8 +194,7 @@ class DashboardController extends Controller
             ->map(function ($facility) use ($reports) {
                 return [
                     'name' => $facility->name,
-                    'location' =>
-                        $facility->location->gedung
+                    'location' => $facility->location->gedung
                         ?? $facility->location->fakultas
                         ?? 'Universitas',
                     'count' => $reports->where(
@@ -230,7 +285,6 @@ class DashboardController extends Controller
             ->take(5)
             ->get();
 
-
         return view(
             'dashboard.petugas',
             compact(
@@ -271,8 +325,7 @@ class DashboardController extends Controller
             ->whereHas('location', fn ($q) => $q->where('scope_level', 'universitas'))
             ->with(['location', 'photos'])
             ->get()
-            ->groupBy(fn ($facility) =>
-                $facility->location->gedung
+            ->groupBy(fn ($facility) => $facility->location->gedung
                 ?? $facility->location->ruangan
                 ?? 'Fasilitas Lainnya'
             )

@@ -9,7 +9,9 @@
     {{-- Google Fonts: Aclonica, Abel, Sora, dan Inter --}}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Aclonica&family=Abel&family=Inter:wght@500;700&family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Aclonica&family=Abel&family=Inter:wght@500;700&family=Sora:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
 
     <style>
         /* ── Reset & base ── */
@@ -85,6 +87,7 @@
             line-height: 1;
             color: #FFFFFF;
         }
+
         .navbar .brand-dips {
             font-family: 'Abel', sans-serif;
             font-weight: 400;
@@ -120,11 +123,11 @@
         }
 
         .navbar .nav-links a:hover {
-            background-color: rgba(189, 147, 248, 0.25);
+            background-color: #54269a4a;
         }
 
         .navbar .nav-links a.active {
-            background-color: rgba(189, 147, 248, 0.43);
+            background-color: #54269a;
         }
 
         .navbar .nav-links a svg {
@@ -537,9 +540,11 @@
                     ->implode('');
             @endphp
             <div class="avatar-wrap">
-                <button class="avatar" id="avatarBtn" title="{{ auth()->user()->name }}" aria-haspopup="true" aria-expanded="false">
+                <button class="avatar" id="avatarBtn" title="{{ auth()->user()->name }}" aria-haspopup="true"
+                    aria-expanded="false">
                     @if (auth()->user()->avatar)
-                        <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                        <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}"
+                            style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
                     @else
                         {{ $initials }}
                     @endif
