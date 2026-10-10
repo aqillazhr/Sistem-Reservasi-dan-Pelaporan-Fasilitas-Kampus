@@ -9,8 +9,8 @@
         }
 
         /* =========================
-                                                                                       CONTENT
-                                                                                    ========================= */
+                                                                                               CONTENT
+                                                                                            ========================= */
 
         .container {
             padding: 20px 0 40px;
@@ -39,8 +39,8 @@
 
 
         /* =========================
-                                                                                       DETAIL CARD
-                                                                                    ========================= */
+                                                                                               DETAIL CARD
+                                                                                            ========================= */
 
         .detail-card {
             background: white;
@@ -143,8 +143,8 @@
         }
 
         /* =========================
-                                                                                       JADWAL
-                                                                                    ========================= */
+                                                                                               JADWAL
+                                                                                            ========================= */
 
         .schedule-header {
             position: relative;
@@ -196,8 +196,8 @@
 
 
         /* =========================
-                                                                                       CALENDAR
-                                                                                    ========================= */
+                                                                                               CALENDAR
+                                                                                            ========================= */
 
         .calendar {
             display: none;
@@ -322,8 +322,8 @@
 
 
         /* =========================
-                                                                                       AVAILABILITY
-                                                                                    ========================= */
+                                                                                               AVAILABILITY
+                                                                                            ========================= */
 
         .availability {
             margin-top: 25px;
@@ -440,6 +440,11 @@
             background: #fff3b8;
             color: #8a6800;
         }
+
+        .availability .slot.past {
+            background: #e5e7eb;
+            color: #4b5563;
+        }
     </style>
 @endpush
 
@@ -497,8 +502,8 @@
 
 
         <!-- =========================
-                                                                                         DETAIL FASILITAS
-                                                                                    ========================= -->
+                                                                                                 DETAIL FASILITAS
+                                                                                            ========================= -->
 
         <div class="detail-card">
 
@@ -623,8 +628,8 @@
 
 
         <!-- =========================
-                                                                                         JADWAL
-                                                                                    ========================= -->
+                                                                                                 JADWAL
+                                                                                            ========================= -->
 
         <h2>
             Jadwal Fasilitas
@@ -641,8 +646,8 @@
 
 
             <!-- =========================
-                                                                                             CALENDAR
-                                                                                        ========================= -->
+                                                                                                     CALENDAR
+                                                                                                ========================= -->
 
             <div id="calendar" class="calendar">
 
@@ -685,8 +690,8 @@
 
 
         <!-- =========================
-                                                                                         AVAILABILITY
-                                                                                    ========================= -->
+                                                                                                 AVAILABILITY
+                                                                                            ========================= -->
 
         <div class="availability">
 
@@ -996,8 +1001,8 @@
 
 
     <!-- =========================
-                                                                                     JAVASCRIPT CALENDAR
-                                                                                ========================= -->
+                                                                                             JAVASCRIPT CALENDAR
+                                                                                        ========================= -->
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -1133,132 +1138,63 @@
                     }
 
                     const data = await response.json();
-                    console.log('DATA RESERVASI:', data.slots);
 
+                    const availabilityBySlot = new Map();
 
-                    // =========================
-                    // CATAT SLOT YANG TERISI
-                    // =========================
-
-                    const occupied = new Map();
-
-                    data.slots.forEach(reservation => {
-
-                        const reservationStart =
-                            reservation.start_time;
-
-                        const reservationEnd =
-                            reservation.end_time;
-
-                        for (let i = 0; i < 26; i++) {
-
-                            const slotStart =
-                                getTimeFromIndex(i);
-
-                            const slotEnd =
-                                getTimeFromIndex(i + 1);
-
-                            if (
-                                slotStart < reservationEnd &&
-                                slotEnd > reservationStart
-                            ) {
-
-                                occupied.set(
-                                    `${reservation.date}|${slotStart}`,
-                                    reservation.state
-                                );
-
-                            }
-                        }
+                    data.availability.forEach(slotData => {
+                        availabilityBySlot.set(
+                            `${slotData.date}|${slotData.start_time}`,
+                            slotData.state
+                        );
                     });
 
-
-                    // =========================
-                    // ISI KOTAK YANG SUDAH ADA
-                    // =========================
-
+                    // Isi status setiap slot pada jadwal mingguan.
                     availabilityRows.forEach((row, rowIndex) => {
-
-                        const slots =
-                            row.querySelectorAll('.slot');
-
-                        const startTime =
-                            getTimeFromIndex(rowIndex);
+                        const slots = row.querySelectorAll('.slot');
+                        const startTime = getTimeFromIndex(rowIndex);
 
                         slots.forEach((slot, dayIndex) => {
+                            const currentDay = new Date(monday);
 
-                            const currentDay =
-                                new Date(monday);
+                            currentDay.setDate(monday.getDate() + dayIndex);
 
-                            currentDay.setDate(
-                                monday.getDate() + dayIndex
-                            );
+                            const dateString = formatDate(currentDay);
+                            const key = `${dateString}|${startTime}`;
 
-                            const dateString =
-                                formatDate(currentDay);
-
-
-                            // =========================
-                            // CEK STATUS FASILITAS
-                            // =========================
-
-                            let isAvailable =
-                                @json($facility->status) === 'aktif';
-
-
-                            // =========================
-                            // CEK RESERVASI
-                            // =========================
-
-                            const reservationStatus = occupied.get(
-                                `${dateString}|${startTime}`
-                            );
-
-                            if (reservationStatus === 'approved') {
-                                isAvailable = false;
-                            }
-
-
-                            // =========================
-                            // CEK WAKTU YANG SUDAH LEWAT
-                            // =========================
-
-                            const slotDateTime =
-                                new Date(
-                                    `${dateString}T${startTime}:00`
-                                );
-
-                            if (
-                                slotDateTime <= new Date()
-                            ) {
-                                isAvailable = false;
-                            }
-
-
-                            // =========================
-                            // TAMPILKAN
-                            // =========================
+                            // Status ini dikirim oleh server, termasuk aturan H-24.
+                            const slotState = availabilityBySlot.get(key) || 'unavailable';
 
                             slot.classList.remove(
                                 'available',
                                 'unavailable',
-                                'pending'
+                                'pending',
+                                'past'
                             );
 
-                            if (reservationStatus === 'pending' && isAvailable) {
-                                slot.classList.add('pending');
-                                slot.textContent = 'Menunggu';
-                            } else if (isAvailable) {
-                                slot.classList.add('available');
-                                slot.textContent = 'Tersedia';
-                            } else {
-                                slot.classList.add('unavailable');
-                                slot.textContent = 'Tidak tersedia';
-                            }
+                            const stateToClass = {
+                                free: 'available',
+                                pending: 'pending',
+                                approved: 'unavailable',
+                                past: 'past',
+                                toosoon: 'past',
+                            };
 
+                            const stateToText = {
+                                free: 'Tersedia',
+                                pending: 'Menunggu',
+                                approved: 'Terisi',
+                                past: 'Sudah lewat',
+                                toosoon: 'Pemesanan ditutup (batas H-24)',
+                            };
+
+                            slot.classList.add(
+                                stateToClass[slotState] || 'unavailable'
+                            );
+
+                            slot.textContent = stateToText[slotState] || 'Tidak tersedia';
                         });
-
                     });
+
 
                 } catch (error) {
 

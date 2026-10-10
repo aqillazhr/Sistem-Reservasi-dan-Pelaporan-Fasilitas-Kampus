@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreReservationRequest;
 use App\Models\Facility;
 use App\Models\FacilityType;
+use App\Models\Location;
 use App\Models\Reservation;
 use App\Services\ReservationService;
 use Carbon\Carbon;
@@ -42,11 +43,11 @@ class ReservationController extends Controller
             ->pluck('total', 'status');
 
         $counts = [
-            'pending'    => $byStatus['pending']   ?? 0,
-            'aktif'      => (clone $base)->approvedActive()->count(),
-            'selesai'    => (clone $base)->approvedFinished()->count(),
-            'rejected'   => $byStatus['rejected']  ?? 0,
-            'cancelled'  => $byStatus['cancelled'] ?? 0,
+            'pending' => $byStatus['pending'] ?? 0,
+            'aktif' => (clone $base)->approvedActive()->count(),
+            'selesai' => (clone $base)->approvedFinished()->count(),
+            'rejected' => $byStatus['rejected'] ?? 0,
+            'cancelled' => $byStatus['cancelled'] ?? 0,
         ];
 
         return view('reservations.hub', compact('counts'));
@@ -61,8 +62,8 @@ class ReservationController extends Controller
             ->with(['facility.location', 'statusLogs'])
             ->orderByDesc('updated_at')
             ->paginate(50)
-            ->withQueryString(); //kalau user berpindah ke halaman 2 atau 3, 
-                                 //parameter filter di URL-nya tidak hilang
+            ->withQueryString(); // kalau user berpindah ke halaman 2 atau 3,
+        // parameter filter di URL-nya tidak hilang
 
         return view('reservations.index', [
             'reservations' => $reservations,
@@ -73,18 +74,18 @@ class ReservationController extends Controller
     public function facilitiesJson(Request $request): JsonResponse
     {
         $filters = $request->validate([
-            'q'            => ['nullable', 'string', 'max:100'],
-            'type_id'      => ['nullable', 'integer'],
-            'location_id'  => ['nullable', 'integer'],
+            'q' => ['nullable', 'string', 'max:100'],
+            'type_id' => ['nullable', 'integer'],
+            'location_id' => ['nullable', 'integer'],
             'min_capacity' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $facilities = Facility::query()
             ->where('status', 'aktif')
             ->with(['type', 'location'])
-            ->when($filters['q'] ?? null,            fn ($q, $v) => $q->where('name', 'like', '%'.addcslashes($v, '%_\\').'%'))
-            ->when($filters['type_id'] ?? null,      fn ($q, $v) => $q->where('type_id', $v))
-            ->when($filters['location_id'] ?? null,  fn ($q, $v) => $q->where('location_id', $v))
+            ->when($filters['q'] ?? null, fn ($q, $v) => $q->where('name', 'like', '%'.addcslashes($v, '%_\\').'%'))
+            ->when($filters['type_id'] ?? null, fn ($q, $v) => $q->where('type_id', $v))
+            ->when($filters['location_id'] ?? null, fn ($q, $v) => $q->where('location_id', $v))
             ->when($filters['min_capacity'] ?? null, fn ($q, $v) => $q->where('capacity', '>=', $v))
             ->orderBy('name')
             ->paginate(8);
@@ -106,15 +107,15 @@ class ReservationController extends Controller
     {
         $data = $request->validate([
             'facility' => ['required', 'integer'],
-            'date'     => ['nullable', 'date_format:Y-m-d'],
+            'date' => ['nullable', 'date_format:Y-m-d'],
         ]);
 
         $facility = Facility::where('status', 'aktif')->with(['type', 'location'])->findOrFail($data['facility']);
 
-        $today   = now()->startOfDay();
+        $today = now()->startOfDay();
         $maxDate = $today->copy()->addDays((int) config('reservation.max_days_ahead'));
-        $date    = Carbon::parse($data['date'] ?? $today->toDateString(), config('app.timezone'))->startOfDay();
-        $date    = $date->lt($today) ? $today : ($date->gt($maxDate) ? $maxDate : $date);
+        $date = Carbon::parse($data['date'] ?? $today->toDateString(), config('app.timezone'))->startOfDay();
+        $date = $date->lt($today) ? $today : ($date->gt($maxDate) ? $maxDate : $date);
 
         $board = $this->service->slotBoard($facility->id, $date->toDateString());
 
@@ -131,22 +132,21 @@ class ReservationController extends Controller
             'start_options_html' => view('reservations.partials.time-options', ['board' => $board, 'field' => 'start'])->render(),
             'end_options_html' => view('reservations.partials.time-options', ['board' => $board, 'field' => 'end'])->render(),
             'facility_id' => $facility->id,
-            'date'     => $date->toDateString(),
-            'minDate'  => $today->toDateString(),
-            'maxDate'  => $maxDate->toDateString(),
+            'date' => $date->toDateString(),
+            'minDate' => $today->toDateString(),
+            'maxDate' => $maxDate->toDateString(),
             'closeTime' => config('reservation.close_time'),
         ]);
     }
 
-
     public function create(Request $request)
     {
         return view('reservations.create', [
-            'types'       => FacilityType::orderBy('name')->get(),
-            'locations'   => \App\Models\Location::orderBy('scope_level')->orderBy('fakultas')->get(),
+            'types' => FacilityType::orderBy('name')->get(),
+            'locations' => Location::orderBy('scope_level')->orderBy('fakultas')->get(),
             // Tanggal min/max untuk validasi JS
-            'minDate'     => now()->startOfDay()->toDateString(),
-            'maxDate'     => now()->startOfDay()->addDays((int) config('reservation.max_days_ahead'))->toDateString(),
+            'minDate' => now()->startOfDay()->toDateString(),
+            'maxDate' => now()->startOfDay()->addDays((int) config('reservation.max_days_ahead'))->toDateString(),
         ]);
     }
 
@@ -205,15 +205,42 @@ class ReservationController extends Controller
         $from = $data['from'] ?? now()->toDateString();
         $days = (int) ($data['days'] ?? 7);
 
-        $slots = $this->service->occupiedSlots($facility->id, $from, $days)->map(fn ($r) => [
-            'facility_id' => $facility->id,
-            'date' => $r->reservation_date->toDateString(),
-            'start_time' => substr($r->start_time, 0, 5),
-            'end_time' => substr($r->end_time, 0, 5),
-            'state' => $r->status,
-        ]);
+        // Ambil data reservasi yang sedang menunggu atau sudah disetujui.
+        $slots = $this->service
+            ->occupiedSlots($facility->id, $from, $days)
+            ->map(fn ($r) => [
+                'facility_id' => $facility->id,
+                'date' => $r->reservation_date->toDateString(),
+                'start_time' => substr($r->start_time, 0, 5),
+                'end_time' => substr($r->end_time, 0, 5),
+                'state' => $r->status,
+            ]);
 
-        return response()->json(['facility_id' => $facility->id, 'from' => $from, 'days' => $days, 'slots' => $slots]);
+        // Hitung status seluruh slot menggunakan aturan server yang sama
+        // dengan modal Ajukan Reservasi, termasuk batas minimal H-24.
+        $availability = [];
+        $fromDate = Carbon::parse($from, config('app.timezone'))->startOfDay();
+
+        for ($offset = 0; $offset < $days; $offset++) {
+            $date = $fromDate->copy()->addDays($offset)->toDateString();
+
+            foreach ($this->service->slotBoard($facility->id, $date) as $slot) {
+                $availability[] = [
+                    'date' => $date,
+                    'start_time' => $slot['start'],
+                    'end_time' => $slot['end'],
+                    'state' => $slot['state'],
+                ];
+            }
+        }
+
+        return response()->json([
+            'facility_id' => $facility->id,
+            'from' => $from,
+            'days' => $days,
+            'slots' => $slots,
+            'availability' => $availability,
+        ]);
     }
 
     // ------------------------------------------------------------
