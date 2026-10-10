@@ -76,6 +76,12 @@
             transform: translateX(-2px);
         }
 
+        .back-icon {
+            width: 23px;
+            height: 23px;
+            transition: transform 0.2s ease;
+        }
+
         /* Area judul */
         .heading-copy {
             display: flex;
@@ -362,7 +368,10 @@
         <div class="back-title">
             <a href="{{ route('admin.facilities.index') }}" class="back" aria-label="Kembali ke daftar fasilitas"
                 title="Kembali ke daftar fasilitas">
-                <span aria-hidden="true">&larr;</span>
+                <svg class="back-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
             </a>
 
             <div class="heading-copy">
