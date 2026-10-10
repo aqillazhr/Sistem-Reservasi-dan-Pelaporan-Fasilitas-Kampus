@@ -222,8 +222,12 @@
                 <div class="form-group">
                     <label for="fakultas">Fakultas</label>
 
-                    <select name="fakultas" id="fakultas">
-                        <option value="">Pilih Fakultas</option>
+                    <select name="fakultas" id="fakultas" required>
+                        <option value="">Pilih lingkup fasilitas</option>
+
+                        <option value="__UNIVERSITAS__" {{ old('fakultas') === '__UNIVERSITAS__' ? 'selected' : '' }}>
+                            Fasilitas Umum Universitas
+                        </option>
 
                         @foreach ($faculties as $faculty)
                             <option value="{{ $faculty }}" {{ old('fakultas') == $faculty ? 'selected' : '' }}>
@@ -274,14 +278,8 @@
                 <div class="form-group">
                     <label for="gedung">Gedung</label>
 
-                    <select name="gedung" id="gedung">
-                        <option value="">Pilih Gedung</option>
-
-                        @foreach ($buildings as $building)
-                            <option value="{{ $building }}" {{ old('gedung') == $building ? 'selected' : '' }}>
-                                {{ $building }}
-                            </option>
-                        @endforeach
+                    <select name="gedung" id="gedung" disabled>
+                        <option value="">Pilih fakultas terlebih dahulu</option>
                     </select>
 
                     @error('gedung')
@@ -303,10 +301,12 @@
 
                 {{-- Kapasitas --}}
                 <div class="form-group">
-                    <label for="capacity">Kapasitas Ruangan</label>
+                    <label for="capacity" id="capacity-label">
+                        Kapasitas Ruangan (Opsional)
+                    </label>
 
                     <input type="number" name="capacity" id="capacity" value="{{ old('capacity') }}" min="1"
-                        placeholder="Masukkan kapasitas fasilitas yang ingin ditambahkan" required>
+                        placeholder="Masukkan kapasitas fasilitas">
 
                     @error('capacity')
                         <div class="error">{{ $message }}</div>
@@ -373,51 +373,138 @@
         const fakultas = document.getElementById('fakultas');
         const prodi = document.getElementById('prodi');
         const tipe = document.getElementById('type_id');
+        const capacity = document.getElementById('capacity');
+        const capacityLabel = document.getElementById('capacity-label');
         const gedung = document.getElementById('gedung');
 
-        // Program studi sementara diambil dari data
-        // yang akan kita kirim dari controller.
         const programsByFaculty = @json($programsByFaculty);
+        const buildingsByFaculty = @json($buildingsByFaculty);
+        const universityBuildings = @json($universityBuildings);
 
-        fakultas.addEventListener('change', function() {
-            const selectedFaculty = this.value;
+        // Nilai lama dipakai kembali jika validasi form gagal.
+        const oldProdi = @json(old('prodi', ''));
+        const oldGedung = @json(old('gedung', ''));
 
-            prodi.innerHTML = '<option value="">Pilih program studi</option>';
+        function fillSelect(select, placeholder, options, selectedValue = '') {
+            select.innerHTML = '';
 
-            if (!selectedFaculty) {
+            const firstOption = document.createElement('option');
+            firstOption.value = '';
+            firstOption.textContent = placeholder;
+            select.appendChild(firstOption);
+
+            options.forEach(function(value) {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+
+            if (options.includes(selectedValue)) {
+                select.value = selectedValue;
+            }
+        }
+
+        function updateLocationOptions(useOldValues = false) {
+            const selectedFaculty = fakultas.value;
+
+            // Reset dropdown ketika fakultas berubah.
+            fillSelect(prodi, 'Pilih program studi (opsional)', [], '');
+            fillSelect(gedung, 'Pilih gedung', [], '');
+
+            if (selectedFaculty === '__UNIVERSITAS__') {
+                // Fasilitas tingkat universitas tidak memiliki fakultas/prodi.
                 prodi.disabled = true;
-                return;
+                fillSelect(prodi, 'Tidak diperlukan untuk fasilitas universitas', [], '');
+
+                gedung.disabled = false;
+
+                fillSelect(
+                    gedung,
+                    'Pilih gedung universitas',
+                    universityBuildings,
+                    useOldValues ? oldGedung : ''
+                );
+
+            } else if (selectedFaculty) {
+                // Fasilitas tingkat fakultas.
+                prodi.disabled = false;
+
+                const programs = programsByFaculty[selectedFaculty] ?? [];
+                const buildings = buildingsByFaculty[selectedFaculty] ?? [];
+
+                fillSelect(
+                    prodi,
+                    'Pilih program studi (opsional)',
+                    programs,
+                    useOldValues ? oldProdi : ''
+                );
+
+                fillSelect(
+                    gedung,
+                    'Pilih gedung fakultas',
+                    buildings,
+                    useOldValues ? oldGedung : ''
+                );
+
+                gedung.disabled = buildings.length === 0;
+
+            } else {
+                // Fakultas belum dipilih.
+                prodi.disabled = true;
+                gedung.disabled = true;
+
+                fillSelect(prodi, 'Pilih fakultas terlebih dahulu', [], '');
+                fillSelect(gedung, 'Pilih fakultas terlebih dahulu', [], '');
             }
 
-            prodi.disabled = false;
+            updateBuildingByType();
+        }
 
-            const programs = programsByFaculty[selectedFaculty] ?? [];
+        function updateBuildingByType() {
+            const selectedOption = tipe.options[tipe.selectedIndex];
+            const typeName = selectedOption?.dataset.name || '';
 
-            programs.forEach(function(program) {
-                const option = document.createElement('option');
-
-                option.value = program;
-                option.textContent = program;
-
-                prodi.appendChild(option);
-            });
-        });
-
-        tipe.addEventListener('change', function() {
-            const selectedOption = this.options[this.selectedIndex];
-            const typeName = selectedOption.dataset.name || '';
-
+            // Lapangan tidak memerlukan gedung.
             if (typeName.includes('lapangan')) {
                 gedung.value = '';
                 gedung.disabled = true;
-            } else {
-                gedung.disabled = false;
             }
+        }
+
+        function updateCapacityRequirement() {
+            const selectedOption = tipe.options[tipe.selectedIndex];
+            const typeName = (selectedOption?.dataset.name || '')
+                .trim()
+                .toLowerCase();
+
+            const requiredTypes = [
+                'ruang kelas',
+                'aula',
+                'laboratorium',
+                'lapangan'
+            ];
+
+            const isRequired = requiredTypes.includes(typeName);
+
+            capacity.required = isRequired;
+
+            capacityLabel.textContent = isRequired ?
+                'Kapasitas Ruangan *' :
+                'Kapasitas Ruangan (Opsional)';
+        }
+
+        fakultas.addEventListener('change', function() {
+            // Pemilihan fakultas baru mereset prodi dan gedung.
+            updateLocationOptions(false);
         });
 
-        // Jalankan kondisi awal jika ada old input.
-        tipe.dispatchEvent(new Event('change'));
-        fakultas.dispatchEvent(new Event('change'));
+        tipe.addEventListener('change', updateBuildingByType);
+        tipe.addEventListener('change', updateCapacityRequirement);
+
+        // Pulihkan nilai lama ketika form dikembalikan oleh validasi.
+        updateLocationOptions(true);
+        updateCapacityRequirement();
     </script>
 
 </body>

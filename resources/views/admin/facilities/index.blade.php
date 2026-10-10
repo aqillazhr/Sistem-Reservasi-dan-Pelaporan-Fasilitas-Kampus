@@ -504,7 +504,11 @@
                                 </td>
 
                                 <td class="capacity-cell">
-                                    {{ $facility->capacity }} orang
+                                    @if ($facility->capacity !== null)
+                                        {{ $facility->capacity }} orang
+                                    @else
+                                        -
+                                    @endif
                                 </td>
 
                                 <td>

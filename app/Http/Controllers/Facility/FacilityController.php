@@ -7,7 +7,9 @@ use App\Models\Facility;
 use App\Models\FacilityType;
 use App\Models\Location;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 
 /**
  * Modul: Fasilitas (Orang 2)
@@ -228,31 +230,55 @@ class FacilityController extends Controller
 
     public function create()
     {
-        $types = FacilityType::all();
+        $types = FacilityType::orderBy('name')->get();
 
-        $locations = Location::query()
-            ->whereNotNull('fakultas')
-            ->get();
+        // Ambil seluruh data lokasi dari database.
+        $locations = Location::query()->get();
 
-        $faculties = $locations
+        // Pisahkan lokasi berdasarkan lingkupnya.
+        $facultyLocations = $locations
+            ->where('scope_level', 'fakultas')
+            ->whereNotNull('fakultas');
+
+        $universityLocations = $locations
+            ->where('scope_level', 'universitas');
+
+        // Daftar fakultas.
+        $faculties = $facultyLocations
             ->pluck('fakultas')
             ->unique()
             ->sort()
             ->values();
 
-        $buildings = $locations
+        // Gedung dikelompokkan berdasarkan fakultas.
+        $buildingsByFaculty = $facultyLocations
             ->whereNotNull('gedung')
+            ->groupBy('fakultas')
+            ->map(function ($items) {
+                return $items
+                    ->pluck('gedung')
+                    ->filter()
+                    ->unique()
+                    ->sort()
+                    ->values();
+            });
+
+        // Gedung yang berada pada lingkup universitas.
+        $universityBuildings = $universityLocations
             ->pluck('gedung')
+            ->filter()
             ->unique()
             ->sort()
             ->values();
 
-        $programsByFaculty = $locations
+        // Program studi dikelompokkan berdasarkan fakultas.
+        $programsByFaculty = $facultyLocations
             ->whereNotNull('prodi')
             ->groupBy('fakultas')
             ->map(function ($items) {
                 return $items
                     ->pluck('prodi')
+                    ->filter()
                     ->unique()
                     ->sort()
                     ->values();
@@ -261,7 +287,8 @@ class FacilityController extends Controller
         return view('admin.facilities.create', compact(
             'types',
             'faculties',
-            'buildings',
+            'buildingsByFaculty',
+            'universityBuildings',
             'programsByFaculty'
         ));
     }
@@ -303,17 +330,160 @@ class FacilityController extends Controller
 
     public function store(Request $request)
     {
+        // Tentukan apakah fasilitas berada di tingkat universitas.
+        $fakultasInput = $request->input('fakultas');
+        $isUniversity = $fakultasInput === '__UNIVERSITAS__';
+
+        // Ambil fakultas yang benar-benar tersedia di database.
+        $availableFaculties = Location::query()
+            ->where('scope_level', 'fakultas')
+            ->whereNotNull('fakultas')
+            ->distinct()
+            ->pluck('fakultas')
+            ->all();
+
+        // Cari pilihan lokasi yang sesuai dengan lingkup yang dipilih.
+        if ($isUniversity) {
+            $matchingLocations = Location::query()
+                ->where('scope_level', 'universitas')
+                ->get();
+        } elseif (is_string($fakultasInput) && $fakultasInput !== '') {
+            $matchingLocations = Location::query()
+                ->where('scope_level', 'fakultas')
+                ->where('fakultas', $fakultasInput)
+                ->get();
+        } else {
+            $matchingLocations = collect();
+        }
+
+        $availablePrograms = $matchingLocations
+            ->pluck('prodi')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $availableBuildings = $matchingLocations
+            ->pluck('gedung')
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $type = FacilityType::find($request->input('type_id'));
+
+        $capacityRequired = $type && in_array(
+            mb_strtolower(trim($type->name)),
+            ['ruang kelas', 'aula', 'laboratorium', 'lapangan'],
+            true
+        );
+        
+        // Validasi input form.
         $validated = $request->validate([
+            'fakultas' => [
+                'required',
+                'string',
+                Rule::in(array_merge(
+                    $availableFaculties,
+                    ['__UNIVERSITAS__']
+                )),
+            ],
+            'prodi' => [
+                'nullable',
+                'string',
+                Rule::in($availablePrograms),
+            ],
+            'gedung' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::in($availableBuildings),
+            ],
+            'ruangan' => ['nullable', 'string', 'max:255'],
             'name' => ['required', 'string', 'max:255'],
             'type_id' => ['required', 'exists:facility_types,id'],
-            'location_id' => ['required', 'exists:locations,id'],
-            'capacity' => ['required', 'integer', 'min:1'],
+            'capacity' => $capacityRequired
+                ? ['required', 'integer', 'min:1']
+                : ['nullable', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
+            'photo' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
         ]);
 
-        $facility = Facility::create($validated + ['status' => 'aktif']);
+        // Susun data lokasi sesuai lingkup fasilitas.
+        $locationData = [
+            'scope_level' => $isUniversity ? 'universitas' : 'fakultas',
+            'fakultas' => $isUniversity ? null : $validated['fakultas'],
+            'prodi' => $isUniversity
+                ? null
+                : ($validated['prodi'] ?? null),
+            'gedung' => $validated['gedung'] ?? null,
+            'ruangan' => $validated['ruangan'] ?? null,
+        ];
 
-        return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil ditambahkan.');
+        // Unggah foto jika admin memilih file.
+        $photoPath = null;
+
+        if ($request->hasFile('photo')) {
+            $photoPath = $request->file('photo')
+                ->store('facilities', 'public');
+
+            if (! $photoPath) {
+                return back()
+                    ->withErrors(['photo' => 'Foto gagal diunggah. Silakan coba lagi.'])
+                    ->withInput();
+            }
+        }
+
+        try {
+            // Simpan lokasi, fasilitas, dan catatan foto
+            // dalam satu transaksi database.
+            $facility = DB::transaction(function () use (
+                $validated,
+                $locationData,
+                $photoPath
+            ) {
+                // Gunakan lokasi yang sudah ada jika datanya cocok.
+                // Jika belum ada, buat lokasi baru.
+                $location = Location::firstOrCreate($locationData);
+
+                // Simpan data fasilitas.
+                $facility = Facility::create([
+                    'name' => $validated['name'],
+                    'type_id' => $validated['type_id'],
+                    'location_id' => $location->id,
+                    'capacity' => $validated['capacity'] ?? null,
+                    'description' => $validated['description'] ?? null,
+                    'status' => 'aktif',
+                ]);
+
+                // Catat foto jika ada.
+                if ($photoPath !== null) {
+                    $facility->photos()->create([
+                        'file_path' => $photoPath,
+                        'is_primary' => true,
+                        'uploaded_at' => now(),
+                    ]);
+                }
+
+                return $facility;
+            });
+        } catch (\Throwable $exception) {
+            // Jika transaksi gagal, bersihkan file yang telanjur diunggah.
+            if ($photoPath !== null) {
+                Storage::disk('public')->delete($photoPath);
+            }
+
+            throw $exception;
+        }
+
+        return redirect()
+            ->route('admin.facilities.index')
+            ->with('status', 'Fasilitas berhasil ditambahkan.');
     }
 
     public function toggleActive(Request $request, Facility $facility)
