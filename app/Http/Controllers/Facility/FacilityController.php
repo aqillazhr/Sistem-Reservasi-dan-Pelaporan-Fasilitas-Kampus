@@ -7,6 +7,7 @@ use App\Models\Facility;
 use App\Models\FacilityType;
 use App\Models\Location;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Modul: Fasilitas (Orang 2)
@@ -265,6 +266,41 @@ class FacilityController extends Controller
         ));
     }
 
+    public function adminIndex(Request $request)
+    {
+        $search = trim($request->query('search', ''));
+
+        $facilities = Facility::query()
+            ->with(['type', 'location'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', '%'.$search.'%')
+                        ->orWhereHas('type', function ($typeQuery) use ($search) {
+                            $typeQuery->where(
+                                'name',
+                                'like',
+                                '%'.$search.'%'
+                            );
+                        })
+                        ->orWhereHas('location', function ($locationQuery) use ($search) {
+                            $locationQuery
+                                ->where('fakultas', 'like', '%'.$search.'%')
+                                ->orWhere('prodi', 'like', '%'.$search.'%')
+                                ->orWhere('gedung', 'like', '%'.$search.'%')
+                                ->orWhere('ruangan', 'like', '%'.$search.'%');
+                        });
+                });
+            })
+            ->orderBy('name')
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('admin.facilities.index', compact(
+            'facilities',
+            'search'
+        ));
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -280,19 +316,152 @@ class FacilityController extends Controller
         return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil ditambahkan.');
     }
 
+    public function toggleActive(Request $request, Facility $facility)
+    {
+        // Fasilitas dalam perbaikan tidak diubah melalui tombol ini.
+        if (! in_array($facility->status, ['aktif', 'nonaktif'], true)) {
+            return redirect()
+                ->route('admin.facilities.index', $request->only(['search', 'page']))
+                ->with('error', 'Fasilitas sedang dalam perbaikan. Status tidak diubah.');
+        }
+
+        // Ubah status aktif menjadi nonaktif, atau sebaliknya.
+        $newStatus = $facility->status === 'aktif'
+            ? 'nonaktif'
+            : 'aktif';
+
+        // Simpan perubahan sekaligus mencatat riwayat status.
+        $facility->updateFacilityStatus(
+            $newStatus,
+            $request->user()->id,
+            $newStatus === 'nonaktif'
+                ? 'Dinonaktifkan oleh admin.'
+                : 'Diaktifkan kembali oleh admin.'
+        );
+
+        return redirect()
+            ->route('admin.facilities.index', $request->only(['search', 'page']))
+            ->with(
+                'status',
+                'Status fasilitas "'.$facility->name.
+                '" berhasil diubah menjadi '.$newStatus.'.'
+            );
+    }
+
+    public function edit(Facility $facility)
+    {
+        // Ambil data fasilitas beserta lokasi dan tipenya.
+        $facility->load(['type', 'location']);
+
+        // Data untuk dropdown form.
+        $types = FacilityType::orderBy('name')->get();
+
+        // Ambil semua lokasi, termasuk lokasi tingkat universitas.
+        $locations = Location::query()->get();
+
+        // Ambil lokasi yang memiliki data fakultas saja.
+        $facultyLocations = $locations->whereNotNull('fakultas');
+
+        $faculties = $facultyLocations
+            ->pluck('fakultas')
+            ->unique()
+            ->sort()
+            ->values();
+
+        $buildings = $locations
+            ->whereNotNull('gedung')
+            ->pluck('gedung')
+            ->unique()
+            ->sort()
+            ->values();
+
+        $programsByFaculty = $facultyLocations
+            ->whereNotNull('prodi')
+            ->groupBy('fakultas')
+            ->map(function ($items) {
+                return $items
+                    ->pluck('prodi')
+                    ->unique()
+                    ->sort()
+                    ->values();
+            });
+
+        return view('admin.facilities.edit', compact(
+            'facility',
+            'types',
+            'locations',
+            'faculties',
+            'buildings',
+            'programsByFaculty'
+        ));
+    }
+
     public function update(Request $request, Facility $facility)
     {
+        // Validasi data fasilitas dan foto baru jika diunggah.
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'type_id' => ['required', 'exists:facility_types,id'],
             'location_id' => ['required', 'exists:locations,id'],
             'capacity' => ['required', 'integer', 'min:1'],
             'description' => ['nullable', 'string'],
+            'photo' => [
+                'nullable',
+                'image',
+                'mimes:jpg,jpeg,png,webp',
+                'max:5120',
+            ],
         ]);
 
+        // Pisahkan file foto dari data fasilitas.
+        $photo = $validated['photo'] ?? null;
+        unset($validated['photo']);
+
+        // Perbarui informasi utama fasilitas.
         $facility->update($validated);
 
-        return redirect()->route('facilities.show', $facility)->with('status', 'Fasilitas berhasil diperbarui.');
+        // Jika admin memilih foto baru, proses unggahannya.
+        if ($photo) {
+            // Simpan foto baru di storage/app/public/facilities.
+            $newPath = $photo->store('facilities', 'public');
+
+            // Ambil foto pertama yang sudah tersimpan, jika ada.
+            $currentPhoto = $facility->photos()
+                ->orderBy('id')
+                ->first();
+
+            if ($currentPhoto) {
+                // Catat lokasi file lama agar dapat dihapus setelah
+                // database berhasil diperbarui.
+                $oldPath = $currentPhoto->file_path;
+
+                // Jadikan foto lama yang pertama sebagai foto utama
+                // yang diperbarui dengan file baru.
+                $facility->photos()->update([
+                    'is_primary' => false,
+                ]);
+
+                $currentPhoto->update([
+                    'file_path' => $newPath,
+                    'is_primary' => true,
+                    'uploaded_at' => now(),
+                ]);
+
+                // Hapus file lama setelah perubahan database berhasil.
+                Storage::disk('public')->delete($oldPath);
+            } else {
+                // Jika belum ada foto, tambahkan foto pertama.
+                $facility->photos()->create([
+                    'file_path' => $newPath,
+                    'is_primary' => true,
+                    'uploaded_at' => now(),
+                ]);
+            }
+        }
+
+        return redirect()
+            ->route('admin.facilities.index')
+            ->with('status', 'Fasilitas berhasil diperbarui.');
     }
 
     public function byFaculty(Request $request, string $faculty)

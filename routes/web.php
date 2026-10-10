@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminReportController;
 use App\Http\Controllers\Auth\AccountManagementController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\DashboardController;
@@ -84,7 +85,7 @@ Route::middleware(['auth', 'role:pengguna'])->prefix('app')->name('pengguna.')->
     Route::get('/laporan/create', [ReportController::class, 'create'])->name('reports.create');
     Route::post('/laporan/draft', [ReportController::class, 'storeDraft'])->name('reports.store-draft');
     Route::get('/laporan/draft', [ReportController::class, 'drafts'])->name('reports.drafts');
-    Route::delete('/laporan/{report}/foto/{photo}',[ReportController::class, 'deletePhoto'])->name('reports.delete-photo');
+    Route::delete('/laporan/{report}/foto/{photo}', [ReportController::class, 'deletePhoto'])->name('reports.delete-photo');
     Route::get('/laporan/{report}/preview', [ReportController::class, 'preview'])->name('reports.preview');
     Route::get('/laporan/{report}/edit', [ReportController::class, 'editDraft'])->name('reports.edit');
     Route::put('/laporan/{report}/draft', [ReportController::class, 'updateDraft'])->name('reports.update-draft');
@@ -128,13 +129,25 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->name('admin.')->grou
     Route::post('/akun/{user}/toggle-active', [AccountManagementController::class, 'toggleActive'])->name('accounts.toggle-active');
 
     // Fasilitas (Orang 2)
+    Route::get('/fasilitas', [FacilityController::class, 'adminIndex'])
+        ->name('facilities.index');
+    Route::get('/fasilitas/create', [FacilityController::class, 'create'])
+        ->name('facilities.create');
+    // Halaman edit fasilitas
+    Route::get('/fasilitas/{facility}/edit', [FacilityController::class, 'edit'])
+        ->name('facilities.edit');
     Route::post('/fasilitas', [FacilityController::class, 'store'])->name('facilities.store');
     Route::put('/fasilitas/{facility}', [FacilityController::class, 'update'])->name('facilities.update');
+    // Aktifkan / nonaktifkan fasilitas
+    Route::patch(
+        '/fasilitas/{facility}/toggle-active',
+        [FacilityController::class, 'toggleActive']
+    )->name('facilities.toggle-active');
 
     // Rekap dan Ekspor (Orang 4)
-    Route::get('/rekap',[\App\Http\Controllers\Admin\AdminReportController::class, 'index'])->name('reports.index');
-    Route::get('/rekap/export/csv',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportCsv'])->name('reports.export.csv');
-    Route::get('/rekap/export/excel',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportExcel'])->name('reports.export.excel');
-    Route::get('/rekap/export/pdf',[\App\Http\Controllers\Admin\AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
+    Route::get('/rekap', [AdminReportController::class, 'index'])->name('reports.index');
+    Route::get('/rekap/export/csv', [AdminReportController::class, 'exportCsv'])->name('reports.export.csv');
+    Route::get('/rekap/export/excel', [AdminReportController::class, 'exportExcel'])->name('reports.export.excel');
+    Route::get('/rekap/export/pdf', [AdminReportController::class, 'exportPdf'])->name('reports.export.pdf');
     
 });
