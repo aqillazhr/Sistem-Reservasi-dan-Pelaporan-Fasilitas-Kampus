@@ -10,23 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Modul: Laporan, Maintenance & Rekap (Orang 4)
- * Modul database: Reports
- *
- * TODO Orang 4:
- * - store(): INSERT reports + INSERT report_photos (minimal 1 foto) WAJIB
- *   dibungkus satu DB::transaction() — rollback kalau tidak ada foto yang
- *   berhasil di-attach (relasi mandatory-mandatory, lihat README-database.pdf)
- * - index() untuk pengguna: riwayat + status laporan sendiri
- * - updateStatus(): baru -> diproses -> selesai/ditolak, isi resolution_note
- *   & resolved_at saat ditutup
- * - markUnderRepair()/markFixed(): JANGAN ubah $facility->status langsung,
- *   panggil $facility->updateFacilityStatus() dari Model Facility (milik Orang 2)
- * - rekap(): export CSV/Excel/PDF okupansi (dari Reservation milik Orang 3)
- *   + frekuensi kerusakan (dari Report sendiri)
- */
-
 class ReportController extends Controller
 {
     public function index(Request $request)
@@ -133,13 +116,16 @@ class ReportController extends Controller
         [
             'facility_id' => ['required', 'exists:facilities,id'],
             'category' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => $request->input('category') === 'Lainnya'
+                ? ['required', 'string']
+                : ['nullable', 'string'],
             'photos' => ['nullable', 'array', 'max:3'],
             'photos.*' => ['nullable', 'image', 'max:4096'],
             'delete_photo_ids' => ['nullable', 'array'],
             'delete_photo_ids.*' => ['integer','exists:report_photos,id',],
         ],
         [
+            'description.required' => 'Deskripsi wajib diisi jika memilih kategori kerusakan Lainnya.',
             'photos.max' => 'Maksimal 3 foto.',
             'photos.*.max' => 'Ukuran setiap foto maksimal 4 MB.',
             'photos.*.image' => 'File yang dipilih harus berupa gambar.',
@@ -228,6 +214,18 @@ class ReportController extends Controller
 
         $report->load('photos');
 
+        if (
+            $report->category === 'Lainnya'
+            && trim($report->description ?? '') === ''
+        ) {
+            return redirect()
+                ->route('pengguna.reports.edit', $report)
+                ->withErrors([
+                    'description' =>
+                        'Deskripsi wajib diisi jika memilih kategori kerusakan Lainnya.',
+                ]);
+        }
+
         if ($report->photos->isEmpty()) {
             return back()->withErrors([
                 'photos' =>
@@ -285,10 +283,16 @@ class ReportController extends Controller
     {
         $isPreview = $request->input('action') === 'preview';
 
+        $descriptionRules = (
+            $isPreview && $request->input('category') === 'Lainnya'
+        )
+            ? ['required', 'string']
+            : ['nullable', 'string'];
+
         $validated = $request->validate([
             'facility_id' => ['required', 'exists:facilities,id'],
             'category' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
+            'description' => $descriptionRules,
 
             'photos' => $isPreview
                 ? ['required', 'array', 'min:1', 'max:3']
@@ -297,6 +301,9 @@ class ReportController extends Controller
             'photos.*' => ['image', 'max:4096'],
         ],
         [
+            'description.required' =>
+                'Deskripsi wajib diisi jika memilih kategori kerusakan Lainnya.',
+
             'photos.required' =>
                 'Minimal 1 foto diperlukan untuk melihat pratinjau laporan.',
 
