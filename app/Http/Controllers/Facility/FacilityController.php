@@ -182,6 +182,12 @@ class FacilityController extends Controller
                 $q->where('capacity', '<=', $capacityMax);
             })
 
+            // URUTAN HASIL BERDASARKAN KAPASITAS
+            ->when($capacityMin !== null || $capacityMax !== null, function ($q) {
+                $q->orderBy('capacity', 'asc')
+                    ->orderBy('name', 'asc');
+            })
+
             ->with([
                 'type',
                 'location',
