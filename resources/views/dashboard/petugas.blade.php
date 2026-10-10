@@ -19,10 +19,10 @@
     .petugas-title {
         margin: 0 0 30px;
         font-family: 'Sora', Helvetica, sans-serif;
-        font-size: 40px;
+        font-size: 46px;
         font-weight: 700;
         line-height: 1.2;
-        color: #3C186B;
+        color: #501e91;
     }
 
 

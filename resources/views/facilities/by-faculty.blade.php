@@ -40,7 +40,7 @@
         }
 
         .group-body {
-            background: #D5BBFB;
+            background: rgba(213, 187, 251, 0.6);
             border-radius: 8px;
             padding: 28px 40px;
         }

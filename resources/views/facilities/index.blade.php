@@ -1,6 +1,6 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Hasil Pencarian')
+@section('title', 'Semua Fasilitas')
 
 @push('styles')
     <style>
@@ -9,8 +9,8 @@
         }
 
         .search-page h1 {
-            color: #54269a;
-            font-size: 40px;
+            color: #501e91;
+            font-size: 46px;
             margin-top: 0;
             margin-bottom: 20px;
         }
@@ -31,7 +31,7 @@
         }
 
         .filter-title {
-            color: #54269a;
+            color: #501e91;
             font-size: 20px;
             font-weight: 700;
             margin-bottom: 18px;
@@ -69,7 +69,7 @@
 
         .filter-group select:focus,
         .filter-group input:focus {
-            border-color: #54269a;
+            border-color: #501e91;
         }
 
         .capacity-group {
@@ -106,7 +106,7 @@
             padding: 10px 20px;
             border-radius: 8px;
             background: #eee7f7;
-            color: #54269a;
+            color: #501e91;
             text-decoration: none;
             font-size: 14px;
             font-weight: 600;
@@ -160,7 +160,7 @@
         }
 
         .facility-info h2 {
-            color: #54269a;
+            color: #501e91;
             margin-top: 0;
         }
 
@@ -215,6 +215,16 @@
                 align-self: flex-end;
             }
         }
+
+        /* Box ungu transparan 60% untuk membungkus hasil fasilitas */
+        .facility-results-wrap {
+            background: rgba(213, 187, 251, 0.6);
+            border-radius: 8px;
+            padding: 24px;
+        }
+        .facility-results-wrap .facility-card:last-child {
+            margin-bottom: 0;
+        }
     </style>
 @endpush
 
@@ -222,7 +232,7 @@
 
     <div class="search-page">
 
-        <h1>Hasil Pencarian</h1>
+        <h1>Semua Fasilitas</h1>
 
 
         {{-- =========================
@@ -401,6 +411,8 @@
          HASIL FASILITAS
     ========================= --}}
 
+        <div class="facility-results-wrap">
+
         @forelse ($facilities as $facility)
             <div class="facility-card">
 
@@ -504,6 +516,8 @@
                 Tidak ada fasilitas yang ditemukan.
             </p>
         @endforelse
+
+        </div>
 
 
         {{-- Pagination --}}

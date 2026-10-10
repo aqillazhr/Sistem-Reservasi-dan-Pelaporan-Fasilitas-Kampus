@@ -12,8 +12,8 @@
     .history-title {
         font-family: 'Sora', Helvetica, sans-serif;
         font-weight: 700;
-        font-size: 40px;
-        color: #3C186B;
+        font-size: 46px;
+        color: #501e91;
         margin: 0 0 6px;
         letter-spacing: 0;
         line-height: normal;
@@ -190,6 +190,28 @@
             padding: 5px 8px;
         }
     }
+
+    .tbl-pager {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .tbl-pager button {
+        padding: 8px 22px;
+        border: 1px solid #bd93f8;
+        border-radius: 8px;
+        background: #fff;
+        color: #501e91;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .tbl-pager button:hover { background: #eee7f7; }
+    .tbl-pager button:disabled { opacity: .4; cursor: not-allowed; }
+    .tbl-pager-info { font-size: 13px; color: #5b4a78; }
 </style>
 
 <div class="history-page">
@@ -352,43 +374,89 @@
 
                 @endforelse
 
+                <tr id="emptyFilterRow" style="display:none;">
+                    <td colspan="8" class="empty">
+                        Tidak ada laporan di kategori ini.
+                    </td>
+                </tr>
+
             </tbody>
 
         </table>
 
     </div>
 
+    <div class="tbl-pager" id="rptPager" style="display:none;">
+        <button type="button" id="rptPrev">&larr; Sebelumnya</button>
+        <span class="tbl-pager-info" id="rptInfo"></span>
+        <button type="button" id="rptNext">Berikutnya &rarr;</button>
+    </div>
+
 </div>
 
 <script>
+(function () {
     const reportFilters = document.querySelectorAll('.report-filter');
-    const reportRows = document.querySelectorAll('.report-row');
+    const allRows = Array.from(document.querySelectorAll('.report-row'));
+    const emptyFilterRow = document.getElementById('emptyFilterRow');
+    const pager = document.getElementById('rptPager');
+    const prevBtn = document.getElementById('rptPrev');
+    const nextBtn = document.getElementById('rptNext');
+    const info = document.getElementById('rptInfo');
+    const perPage = 5;
+    let page = 0;
+    let selectedStatus = 'all';
+    let filtered = [];
+
+    function collectFiltered() {
+        filtered = allRows.filter(function (row) {
+            return selectedStatus === 'all' || row.dataset.status === selectedStatus;
+        });
+    }
+
+    function render() {
+        const start = page * perPage, end = start + perPage;
+        allRows.forEach(function (r) { r.style.display = 'none'; });
+        filtered.forEach(function (r, i) {
+            r.style.display = (i >= start && i < end) ? '' : 'none';
+        });
+        if (emptyFilterRow) {
+            emptyFilterRow.style.display = (allRows.length > 0 && filtered.length === 0) ? '' : 'none';
+        }
+        const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+        if (filtered.length > perPage) {
+            pager.style.display = 'flex';
+            prevBtn.disabled = page === 0;
+            nextBtn.disabled = page >= totalPages - 1;
+            info.textContent = (page + 1) + ' / ' + totalPages;
+        } else {
+            pager.style.display = 'none';
+        }
+    }
+
+    function filterAndRender() {
+        page = 0;
+        collectFiltered();
+        render();
+    }
 
     reportFilters.forEach(function (button) {
         button.addEventListener('click', function () {
-
-            reportFilters.forEach(function (item) {
-                item.classList.remove('active');
-            });
-
+            reportFilters.forEach(function (item) { item.classList.remove('active'); });
             this.classList.add('active');
-
-            const selectedStatus = this.dataset.status;
-
-            reportRows.forEach(function (row) {
-                const rowStatus = row.dataset.status;
-
-                if (
-                    selectedStatus === 'all' ||
-                    rowStatus === selectedStatus
-                ) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+            selectedStatus = this.dataset.status;
+            filterAndRender();
         });
     });
+
+    if (prevBtn) prevBtn.addEventListener('click', function () { if (page > 0) { page--; render(); } });
+    if (nextBtn) nextBtn.addEventListener('click', function () {
+        const totalPages = Math.ceil(filtered.length / perPage);
+        if (page < totalPages - 1) { page++; render(); }
+    });
+
+    filterAndRender();
+})();
 </script>
 
 @endsection

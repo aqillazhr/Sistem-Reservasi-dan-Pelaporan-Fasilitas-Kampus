@@ -4,6 +4,14 @@
 
 @push('styles')
 <style>
+    .pengguna-title {
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-weight: 700;
+        font-size: 46px;
+        color: #501e91;
+        margin: 0 0 8px;
+    }
+
     .dashboard-summary-row {
         display: flex;
         align-items: flex-start;
@@ -22,6 +30,9 @@
         background: rgba(213, 187, 251, 0.6);
         border-radius: 8px;
         padding: 24px;
+    }
+
+    .facility-list {
         display: flex;
         flex-direction: column;
         gap: 20px;
@@ -72,11 +83,33 @@
     }
 
     .empty-note { color: #6b5a87; font-size: 14px; }
+
+    .tbl-pager {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    .tbl-pager button {
+        padding: 8px 22px;
+        border: 1px solid #bd93f8;
+        border-radius: 8px;
+        background: #fff;
+        color: #501e91;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .tbl-pager button:hover { background: #eee7f7; }
+    .tbl-pager button:disabled { opacity: .4; cursor: not-allowed; }
+    .tbl-pager-info { font-size: 13px; color: #5b4a78; }
 </style>
 @endpush
 
 @section('content')
-    <h1>Dashboard Saya</h1>
+    <h1 class="pengguna-title">Dashboard Saya</h1>
 
     <div class="dashboard-summary-row">
         {{-- Reservasi (Orang 3) --}}
@@ -94,25 +127,59 @@
 
     @if ($facilityGroups->isNotEmpty())
         <div class="facility-groups-wrap">
-            @foreach ($facilityGroups as $group)
-                <a href="{{ $group->url }}" class="facility-group-card">
-                    @if ($group->thumbnail)
-                        <img src="{{ asset('storage/'.$group->thumbnail) }}"
-                             alt="{{ $group->name }}" class="facility-group-card__thumb">
-                    @else
-                        <div class="facility-group-card__thumb"></div>
-                    @endif
+            <div class="facility-list" id="facilityList">
+                @foreach ($facilityGroups as $i => $group)
+                    <a href="{{ $group->url }}" class="facility-group-card fg-item" data-index="{{ $i }}" style="{{ $i >= 5 ? 'display:none;' : '' }}">
+                        @if ($group->thumbnail)
+                            <img src="{{ asset('storage/'.$group->thumbnail) }}"
+                                 alt="{{ $group->name }}" class="facility-group-card__thumb">
+                        @else
+                            <div class="facility-group-card__thumb"></div>
+                        @endif
 
-                    <div class="facility-group-card__body">
-                        <p class="facility-group-card__name">{{ $group->name }}</p>
-                        <p class="facility-group-card__meta">{{ $group->available }}/{{ $group->total }} Fasilitas Tersedia</p>
-                    </div>
+                        <div class="facility-group-card__body">
+                            <p class="facility-group-card__name">{{ $group->name }}</p>
+                            <p class="facility-group-card__meta">{{ $group->available }}/{{ $group->total }} Fasilitas Tersedia</p>
+                        </div>
 
-                    <span class="facility-group-card__arrow" aria-hidden="true">&rsaquo;</span>
-                </a>
-            @endforeach
+                        <span class="facility-group-card__arrow" aria-hidden="true">&rsaquo;</span>
+                    </a>
+                @endforeach
+            </div>
+
+            @if ($facilityGroups->count() > 5)
+                <div class="tbl-pager">
+                    <button type="button" id="fgPrev" disabled>&larr; Sebelumnya</button>
+                    <span class="tbl-pager-info" id="fgInfo"></span>
+                    <button type="button" id="fgNext">Berikutnya &rarr;</button>
+                </div>
+            @endif
         </div>
     @else
         <p class="empty-note">Belum ada data fasilitas.</p>
     @endif
+
+    <script>
+    (function () {
+        var items = document.querySelectorAll('.fg-item');
+        if (items.length <= 5) return;
+        var perPage = 5, page = 0, totalPages = Math.ceil(items.length / perPage);
+        var prev = document.getElementById('fgPrev');
+        var next = document.getElementById('fgNext');
+        var info = document.getElementById('fgInfo');
+
+        function render() {
+            var start = page * perPage, end = start + perPage;
+            items.forEach(function (el, i) {
+                el.style.display = (i >= start && i < end) ? '' : 'none';
+            });
+            prev.disabled = page === 0;
+            next.disabled = page >= totalPages - 1;
+            info.textContent = (page + 1) + ' / ' + totalPages;
+        }
+        prev.addEventListener('click', function () { if (page > 0) { page--; render(); } });
+        next.addEventListener('click', function () { if (page < totalPages - 1) { page++; render(); } });
+        render();
+    })();
+    </script>
 @endsection

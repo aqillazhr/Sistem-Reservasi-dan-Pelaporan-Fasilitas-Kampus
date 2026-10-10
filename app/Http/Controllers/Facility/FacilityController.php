@@ -192,7 +192,7 @@ class FacilityController extends Controller
                 },
             ])
 
-            ->paginate(12)
+            ->paginate(5)
 
             ->withQueryString();
 
@@ -390,7 +390,7 @@ class FacilityController extends Controller
                 },
             ])
 
-            ->paginate(12)
+            ->paginate(5)
             ->withQueryString();
 
         $types = FacilityType::orderBy('name')->get();
@@ -419,7 +419,7 @@ class FacilityController extends Controller
                     });
             })
             ->with(['type', 'location', 'photos'])
-            ->paginate(12);
+            ->paginate(5);
 
         return view('facilities.by-group', [
             'facilities' => $facilities,

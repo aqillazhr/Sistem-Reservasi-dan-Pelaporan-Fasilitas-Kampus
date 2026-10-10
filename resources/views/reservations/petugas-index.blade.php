@@ -19,7 +19,7 @@
 
         .kr .tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
         .kr .tabs a {
-            padding: 7px 18px; border-radius: 999px; background: #D5BBFB; color: #fff;
+            padding: 7px 18px; border-radius: 999px; background: rgba(213, 187, 251, 0.6); color: #fff;
             text-decoration: none; font-size: 15px; font-weight: 700; border: none;
             opacity: .65; transition: opacity .15s;
         }
@@ -130,9 +130,10 @@
 
         // Also intercept pagination clicks
         container.addEventListener('click', function (e) {
-            if (e.target.tagName === 'A' && e.target.closest('.pager')) {
+            var pagerLink = e.target.closest('.tbl-pager a, .pager a');
+            if (pagerLink) {
                 e.preventDefault();
-                var url = e.target.getAttribute('href');
+                var url = pagerLink.getAttribute('href');
 
                 if (currentController) currentController.abort();
                 currentController = new AbortController();

@@ -19,17 +19,27 @@
 
     .report-title {
         margin: 0;
-        font-size: 30px;
+        font-size: 46px;
         font-weight: 700;
-        color: #260f45;
+        color: #501e91;
     }
 
     .draft-link {
-        color: #260f45;
-        font-size: 13px;
-        font-weight: 600;
-        text-decoration: underline;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 225px;
+        height: 60px;
+        background: rgba(151, 71, 255, 0.6);
+        color: #ffffff;
+        border-radius: 10px;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 16px;
+        font-weight: 700;
+        text-decoration: none;
+        transition: background .15s;
     }
+    .draft-link:hover { background: rgba(151, 71, 255, 0.8); }
 
     .report-card {
         background: #ffffff;
@@ -53,7 +63,7 @@
     .form-label {
         font-size: 13px;
         font-weight: 700;
-        color: #260f45;
+        color: #501e91;
     }
 
     .form-control {
@@ -63,7 +73,7 @@
         border: 1px solid #bd93f8;
         border-radius: 5px;
         background: #ffffff;
-        color: #260f45;
+        color: #501e91;
         font-family: 'Sora', sans-serif;
         font-size: 12px;
         outline: none;
@@ -213,7 +223,7 @@
 
     .btn-draft {
         background: #d5bbfb;
-        color: #260f45;
+        color: #501e91;
     }
 
     .btn-preview {

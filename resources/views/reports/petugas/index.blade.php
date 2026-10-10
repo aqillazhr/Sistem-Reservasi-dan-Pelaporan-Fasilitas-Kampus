@@ -6,7 +6,7 @@
 
 <style>
     .page-title {
-        font-size: 40px;
+        font-size: 46px;
         font-weight: 700;
         color: #501e91;
         margin-bottom: 8px;
@@ -208,6 +208,28 @@
     .report-filter:hover {
         background: #9747ff;
     }
+
+    .tbl-pager {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .tbl-pager button {
+        padding: 8px 22px;
+        border: 1px solid #bd93f8;
+        border-radius: 8px;
+        background: #fff;
+        color: #501e91;
+        font-family: 'Sora', Helvetica, sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .tbl-pager button:hover { background: #eee7f7; }
+    .tbl-pager button:disabled { opacity: .4; cursor: not-allowed; }
+    .tbl-pager-info { font-size: 13px; color: #5b4a78; }
 </style>
 
 <h1 class="page-title">
@@ -355,7 +377,7 @@
 
             @empty
 
-                <tr>
+                <tr id="emptyReportRow">
                     <td colspan="7" class="empty">
                         Belum ada laporan masuk.
                     </td>
@@ -363,53 +385,97 @@
 
             @endforelse
 
+            <tr id="emptyFilterRow" style="display:none;">
+                <td colspan="7" class="empty">
+                    Tidak ada laporan di kategori ini.
+                </td>
+            </tr>
+
         </tbody>
 
     </table>
 
 </div>
 
+<div class="tbl-pager" id="reportPager" style="display:none;">
+    <button type="button" id="rPrev">&larr; Sebelumnya</button>
+    <span class="tbl-pager-info" id="rInfo"></span>
+    <button type="button" id="rNext">Berikutnya &rarr;</button>
+</div>
+
 <script>
+(function () {
     const reportSearch = document.getElementById('reportSearch');
     const reportTable = document.getElementById('reportTable');
     const reportFilters = document.querySelectorAll('.report-filter');
-
+    const allRows = Array.from(reportTable.querySelectorAll('tbody tr[data-status]'));
+    const emptyFilterRow = document.getElementById('emptyFilterRow');
+    const pager = document.getElementById('reportPager');
+    const prevBtn = document.getElementById('rPrev');
+    const nextBtn = document.getElementById('rNext');
+    const info = document.getElementById('rInfo');
+    const perPage = 5;
+    let page = 0;
     let selectedStatus = 'all';
+    let filtered = [];
 
-    function filterReports() {
+    function collectFiltered() {
         const keyword = reportSearch.value.toLowerCase().trim();
-
-        reportTable.querySelectorAll('tbody tr').forEach(function (row) {
+        filtered = allRows.filter(function (row) {
             const rowText = row.textContent.toLowerCase();
             const rowStatus = row.dataset.status;
-
             const matchesSearch = rowText.includes(keyword);
-            const matchesStatus =
-                selectedStatus === 'all' ||
-                rowStatus === selectedStatus;
-
-            row.style.display =
-                matchesSearch && matchesStatus
-                    ? ''
-                    : 'none';
+            const matchesStatus = selectedStatus === 'all' || rowStatus === selectedStatus;
+            return matchesSearch && matchesStatus;
         });
     }
 
-    reportSearch.addEventListener('input', filterReports);
+    function render() {
+        const start = page * perPage, end = start + perPage;
+        allRows.forEach(function (r) { r.style.display = 'none'; });
+        filtered.forEach(function (r, i) {
+            r.style.display = (i >= start && i < end) ? '' : 'none';
+        });
+        emptyFilterRow.style.display = (allRows.length > 0 && filtered.length === 0) ? '' : 'none';
+
+        const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+        if (filtered.length > perPage) {
+            pager.style.display = 'flex';
+            prevBtn.disabled = page === 0;
+            nextBtn.disabled = page >= totalPages - 1;
+            info.textContent = (page + 1) + ' / ' + totalPages;
+        } else {
+            pager.style.display = 'none';
+        }
+    }
+
+    function filterAndRender() {
+        page = 0;
+        collectFiltered();
+        render();
+    }
+
+    reportSearch.addEventListener('input', filterAndRender);
 
     reportFilters.forEach(function (button) {
         button.addEventListener('click', function () {
-            reportFilters.forEach(function (item) {
-                item.classList.remove('active');
-            });
-
+            reportFilters.forEach(function (item) { item.classList.remove('active'); });
             this.classList.add('active');
-
             selectedStatus = this.dataset.status;
-
-            filterReports();
+            filterAndRender();
         });
     });
+
+    prevBtn.addEventListener('click', function () {
+        if (page > 0) { page--; render(); }
+    });
+    nextBtn.addEventListener('click', function () {
+        const totalPages = Math.ceil(filtered.length / perPage);
+        if (page < totalPages - 1) { page++; render(); }
+    });
+
+    filterAndRender();
+})();
 </script>
 
 @endsection

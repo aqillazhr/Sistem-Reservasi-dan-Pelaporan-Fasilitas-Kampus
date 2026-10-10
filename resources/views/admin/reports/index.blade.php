@@ -13,7 +13,7 @@
         margin: 0 0 28px;
         color: #501e91;
         font-family: 'Sora', Helvetica, sans-serif;
-        font-size: 40px;
+        font-size: 46px;
         font-weight: 700;
     }
 

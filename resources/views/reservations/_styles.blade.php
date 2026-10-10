@@ -21,7 +21,7 @@
     .rsv h1 {
         font-family: 'Sora', Helvetica, sans-serif;
         font-weight: 700;
-        font-size: 40px;
+        font-size: 46px;
         color: var(--brand);
         margin: 0 0 6px;
         letter-spacing: 0;

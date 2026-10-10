@@ -57,11 +57,20 @@
 </table>
 </div>
 
-<div class="pager">
-    @if ($reservations->previousPageUrl())
-        <a href="{{ $reservations->previousPageUrl() }}">&larr; Sebelumnya</a>
-    @else <span></span> @endif
-    @if ($reservations->nextPageUrl())
-        <a href="{{ $reservations->nextPageUrl() }}">Berikutnya &rarr;</a>
-    @endif
-</div>
+@if ($reservations->hasPages())
+    <div class="tbl-pager" style="display:flex; justify-content:center; align-items:center; gap:12px; margin-top:16px;">
+        @if ($reservations->onFirstPage())
+            <button disabled class="tbl-pager-btn" style="padding:8px 22px; border:1px solid #bd93f8; border-radius:8px; background:#fff; color:#501e91; font-family:'Sora',Helvetica,sans-serif; font-size:14px; font-weight:600; opacity:.4; cursor:not-allowed;">&larr; Sebelumnya</button>
+        @else
+            <a href="{{ $reservations->previousPageUrl() }}" class="tbl-pager-btn" style="display:inline-block; padding:8px 22px; border:1px solid #bd93f8; border-radius:8px; background:#fff; color:#501e91; font-family:'Sora',Helvetica,sans-serif; font-size:14px; font-weight:600; text-decoration:none;">&larr; Sebelumnya</a>
+        @endif
+
+        <span style="font-size:13px; color:#5b4a78;">{{ $reservations->currentPage() }} / {{ $reservations->lastPage() }}</span>
+
+        @if ($reservations->hasMorePages())
+            <a href="{{ $reservations->nextPageUrl() }}" class="tbl-pager-btn" style="display:inline-block; padding:8px 22px; border:1px solid #bd93f8; border-radius:8px; background:#fff; color:#501e91; font-family:'Sora',Helvetica,sans-serif; font-size:14px; font-weight:600; text-decoration:none;">Berikutnya &rarr;</a>
+        @else
+            <button disabled class="tbl-pager-btn" style="padding:8px 22px; border:1px solid #bd93f8; border-radius:8px; background:#fff; color:#501e91; font-family:'Sora',Helvetica,sans-serif; font-size:14px; font-weight:600; opacity:.4; cursor:not-allowed;">Berikutnya &rarr;</button>
+        @endif
+    </div>
+@endif

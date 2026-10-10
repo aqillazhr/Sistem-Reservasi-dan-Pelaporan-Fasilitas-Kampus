@@ -32,7 +32,7 @@
             color: #ffffff;
         }
 
-        /* ── Tabel riwayat (sesuai mockup) ── */
+        /* ── Tabel riwayat ── */
         .rsv .rsv-table-wrap {
             background: #fff;
             border: 1px solid #9747ff;
@@ -104,12 +104,34 @@
         }
         .rsv table.rsv-table .btn-batalkan:hover { background: #fff5f5; }
         .rsv table.rsv-table .empty td { text-align: center; padding: 30px 16px; color: #7a6497; }
+
+        .rsv-pager {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .rsv-pager button {
+            padding: 8px 22px;
+            border: 1px solid #bd93f8;
+            border-radius: 8px;
+            background: #fff;
+            color: #501e91;
+            font-family: 'Sora', Helvetica, sans-serif;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .rsv-pager button:hover { background: #eee7f7; }
+        .rsv-pager button:disabled { opacity: .4; cursor: not-allowed; }
+        .rsv-pager-info { font-size: 13px; color: #5b4a78; }
     </style>
 
     <div class="rsv">
         <h1>Riwayat Saya</h1>
         <div class="history-switcher">
-            <a href="{{ route('pengguna.reservations.index') }}"class="active">Reservasi</a>
+            <a href="{{ route('pengguna.reservations.index') }}" class="active">Reservasi</a>
             <a href="{{ route('pengguna.reports.index') }}">Laporan</a>
         </div>
 
@@ -145,10 +167,6 @@
                                     'cancelled' => 'dibatalkan',
                                     default     => 'semua',
                                 };
-                            // Alasan ditolak selalu ada di status_logs.note (wajib diisi petugas saat reject()).
-                            // Alasan dibatalkan bisa dari kolom cancellation_reason (petugas/sistem) ATAU,
-                            // kalau pengguna sendiri yang batalkan, dari status_logs.note ("Dibatalkan oleh pengguna")
-                            // karena cancelByOwner() tidak mengisi cancellation_reason.
                             $statusNote = match ($r->status) {
                                 'rejected' => optional($r->statusLogs->where('new_status', 'rejected')->last())->note,
                                 'cancelled' => $r->cancellation_reason
@@ -200,34 +218,60 @@
             </table>
         </div>
 
-        <div class="pager" id="rsvPager">
-            @if ($reservations->previousPageUrl())
-                <a class="btn ghost" href="{{ $reservations->previousPageUrl() }}">Sebelumnya</a>
-            @else <span></span> @endif
-            @if ($reservations->nextPageUrl())
-                <a class="btn ghost" href="{{ $reservations->nextPageUrl() }}">Berikutnya</a>
-            @endif
+        <div class="rsv-pager" id="rsvPager" style="display:none;">
+            <button type="button" id="rsvPrev">&larr; Sebelumnya</button>
+            <span class="rsv-pager-info" id="rsvPagerInfo"></span>
+            <button type="button" id="rsvNext">Berikutnya &rarr;</button>
         </div>
     </div>
 
     <script>
     (function () {
         var tabs     = document.querySelectorAll('#rsvTabs a');
-        var rows     = document.querySelectorAll('#rsvList tr.rsv-row');
+        var allRows  = document.querySelectorAll('#rsvList tr.rsv-row');
         var emptyTab = document.getElementById('emptyTab');
+        var pager    = document.getElementById('rsvPager');
+        var prevBtn  = document.getElementById('rsvPrev');
+        var nextBtn  = document.getElementById('rsvNext');
+        var info     = document.getElementById('rsvPagerInfo');
+        var perPage  = 5;
+        var page     = 0;
+        var filtered = [];
 
-        function filter(tab) {
-            var visible = 0;
-            rows.forEach(function (r) {
+        function collectFiltered(tab) {
+            filtered = [];
+            allRows.forEach(function (r) {
                 var show = tab === 'semua' || r.dataset.tab === tab;
-                r.style.display = show ? '' : 'none';
-                if (show) visible++;
+                if (show) filtered.push(r);
             });
-            emptyTab.hidden = visible > 0;
+        }
+
+        function render() {
+            var start = page * perPage, end = start + perPage;
+            allRows.forEach(function (r) { r.style.display = 'none'; });
+            filtered.forEach(function (r, i) {
+                r.style.display = (i >= start && i < end) ? '' : 'none';
+            });
+            emptyTab.hidden = filtered.length > 0;
+
+            var totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+            if (filtered.length > perPage) {
+                pager.style.display = 'flex';
+                prevBtn.disabled = page === 0;
+                nextBtn.disabled = page >= totalPages - 1;
+                info.textContent = (page + 1) + ' / ' + totalPages;
+            } else {
+                pager.style.display = 'none';
+            }
+        }
+
+        function filterAndRender(tab) {
+            page = 0;
+            collectFiltered(tab);
+            render();
             tabs.forEach(function (t) {
                 t.classList.toggle('on', t.dataset.tab === tab);
             });
-            // Update URL tanpa reload
             var url = new URL(window.location);
             if (tab === 'semua') url.searchParams.delete('status');
             else url.searchParams.set('status', tab);
@@ -237,15 +281,16 @@
         tabs.forEach(function (t) {
             t.addEventListener('click', function (e) {
                 e.preventDefault();
-                filter(t.dataset.tab);
+                filterAndRender(t.dataset.tab);
             });
         });
 
-        // Restore dari URL param saat halaman dibuka
-        var initTab = new URL(window.location).searchParams.get('status') || 'semua';
-        filter(initTab);
+        prevBtn.addEventListener('click', function () { if (page > 0) { page--; render(); } });
+        nextBtn.addEventListener('click', function () { if (page < Math.ceil(filtered.length / perPage) - 1) { page++; render(); } });
 
-        // Baris tabel bisa diklik untuk lihat detail (kecuali klik di tombol/form Batalkan).
+        var initTab = new URL(window.location).searchParams.get('status') || 'semua';
+        filterAndRender(initTab);
+
         document.getElementById('rsvList').addEventListener('click', function (e) {
             if (e.target.closest('a, button, form')) return;
             var row = e.target.closest('tr.rsv-row');

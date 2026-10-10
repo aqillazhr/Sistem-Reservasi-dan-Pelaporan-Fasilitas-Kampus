@@ -248,7 +248,7 @@ class ReservationController extends Controller
                 });
             })
             ->orderByDesc('updated_at')
-            ->paginate(15)
+            ->paginate(5)
             ->withQueryString();
 
         if ($request->ajax()) {
