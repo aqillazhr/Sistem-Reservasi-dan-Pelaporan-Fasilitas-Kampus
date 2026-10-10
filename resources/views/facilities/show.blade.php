@@ -397,7 +397,7 @@
             line-height: 1.35;
         }
 
-        .slot {
+        .availability .slot {
             height: 58px;
             min-width: 120px;
 
@@ -426,17 +426,17 @@
                 transform 0.15s ease;
         }
 
-        .slot.available {
+        .availability .slot.available {
             background: #dff5df;
             color: #267326;
         }
 
-        .slot.unavailable {
+        .availability .slot.unavailable {
             background: #f5dcdc;
             color: #a33333;
         }
 
-        .slot.pending {
+        .availability .slot.pending {
             background: #fff3b8;
             color: #8a6800;
         }
