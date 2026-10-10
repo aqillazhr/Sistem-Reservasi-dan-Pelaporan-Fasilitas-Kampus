@@ -26,7 +26,15 @@
             <div class="error-text">{{ $message }}</div>
         @enderror
 
-        <button type="submit" class="btn-primary">Login</button>
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">
+                Login
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M10 17l5-5-5-5M4 12h11M19 5v14" stroke="currentColor" stroke-width="1.8"
+                          stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
     </form>
 
     <p class="auth-footer">

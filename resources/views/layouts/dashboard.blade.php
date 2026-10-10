@@ -202,16 +202,16 @@
         }
         .navbar .guest-links a {
             font-family: 'Sora', Helvetica, sans-serif;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 16px;
             color: #ffffff;
             white-space: nowrap;
-        }
-        .navbar .guest-links a.btn-daftar {
             background: #bd93f8;
-            padding: 8px 16px;
-            border-radius: 8px;
+            padding: 10px 22px;
+            border-radius: 10px;
+            transition: background .15s;
         }
+        .navbar .guest-links a:hover { background: #a675e8; }
 
         /* ── Content area ── */
         .page-content {
