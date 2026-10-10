@@ -355,7 +355,11 @@
             @endphp
             <div class="avatar-wrap">
                 <button class="avatar" id="avatarBtn" title="{{ auth()->user()->name }}" aria-haspopup="true" aria-expanded="false">
-                    {{ $initials }}
+                    @if (auth()->user()->avatar)
+                        <img src="{{ asset('storage/' . auth()->user()->avatar) }}" alt="{{ auth()->user()->name }}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                    @else
+                        {{ $initials }}
+                    @endif
                 </button>
                 <div class="avatar-dropdown" id="avatarDropdown" role="menu">
                     <div class="avatar-name">{{ auth()->user()->name }}</div>
