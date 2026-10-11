@@ -157,14 +157,6 @@
         color: #a12626;
     }
 
-    .detail-link {
-        font-family: 'Sora', Helvetica, sans-serif;
-        font-size: 13px;
-        font-weight: 600;
-        color: #9747FF;
-        text-decoration: underline;
-    }
-
     .empty {
         padding: 40px;
         text-align: center;
@@ -189,6 +181,20 @@
             font-size: 12px;
             padding: 5px 8px;
         }
+    }
+
+    .report-table tbody tr.report-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+
+    .report-table tbody tr.report-row:hover {
+        background-color: #F7F0FF;
+    }
+
+    .report-table tbody tr.report-row:focus-visible {
+        outline: 2px solid #9747FF;
+        outline-offset: -2px;
     }
 
     .tbl-pager {
@@ -302,6 +308,10 @@
                     <tr
                         class="report-row"
                         data-status="{{ $report->status }}"
+                        data-url="{{ route('pengguna.reports.show', $report) }}"
+                        tabindex="0"
+                        role="link"
+                        aria-label="Lihat detail laporan {{ $report->id }}"
                     >
 
                         <td>
@@ -343,20 +353,6 @@
 
                         </td>
 
-                        <td>
-
-                            <a
-                                href="{{ route(
-                                    'pengguna.reports.show',
-                                    $report
-                                ) }}"
-                                class="detail-link"
-                            >
-                                Detail
-                            </a>
-
-                        </td>
-
                     </tr>
 
                 @empty
@@ -364,7 +360,7 @@
                     <tr>
 
                         <td
-                            colspan="8"
+                            colspan="7"
                             class="empty"
                         >
                             Belum ada laporan yang dikirim.
@@ -398,6 +394,36 @@
 (function () {
     const reportFilters = document.querySelectorAll('.report-filter');
     const allRows = Array.from(document.querySelectorAll('.report-row'));
+
+    // Klik baris laporan untuk membuka halaman detail.
+    allRows.forEach(function (row) {
+        function openDetail() {
+            const url = row.dataset.url;
+
+            if (url) {
+                window.location.href = url;
+            }
+        }
+
+        row.addEventListener('click', function (event) {
+            if (event.target.closest('a, button, input, select, textarea, label')) {
+                return;
+            }
+
+            openDetail();
+        });
+
+        row.addEventListener('keydown', function (event) {
+            if (
+                event.target === row &&
+                (event.key === 'Enter' || event.key === ' ')
+            ) {
+                event.preventDefault();
+                openDetail();
+            }
+        });
+    });
+
     const emptyFilterRow = document.getElementById('emptyFilterRow');
     const pager = document.getElementById('rptPager');
     const prevBtn = document.getElementById('rptPrev');
