@@ -848,8 +848,20 @@ class FacilityController extends Controller
         ));
     }
 
-    public function byBuilding(string $building)
+    public function byBuilding(Request $request, string $building)
     {
+        $typeId = $request->query('type_id');
+        $status = $request->query('status');
+        $availability = $request->query('availability');
+
+        $today = now()->toDateString();
+        $currentTime = now()->format('H:i:s');
+
+        $capacityMin = filter_var($request->query('capacity_min'), FILTER_VALIDATE_INT);
+        $capacityMax = filter_var($request->query('capacity_max'), FILTER_VALIDATE_INT);
+        $capacityMin = $capacityMin === false ? null : $capacityMin;
+        $capacityMax = $capacityMax === false ? null : $capacityMax;
+
         $facilities = Facility::query()
             ->whereHas('location', function ($q) use ($building) {
                 $q->where('scope_level', 'universitas')
@@ -858,12 +870,67 @@ class FacilityController extends Controller
                             ->orWhere('ruangan', $building);
                     });
             })
-            ->with(['type', 'location', 'photos'])
-            ->paginate(5);
+
+            ->when($typeId, fn ($q) => $q->where('type_id', $typeId))
+
+            ->when($status, fn ($q) => $q->where('status', $status))
+
+            ->when($capacityMin !== null, fn ($q) => $q->where('capacity', '>=', $capacityMin))
+
+            ->when($capacityMax !== null, fn ($q) => $q->where('capacity', '<=', $capacityMax))
+
+            ->when($availability === 'available', function ($q) use ($today, $currentTime) {
+                $q->where('status', 'aktif')
+                    ->whereDoesntHave('reservations', function ($rq) use ($today, $currentTime) {
+                        $rq->whereDate('reservation_date', $today)
+                            ->whereIn('status', ['pending', 'approved'])
+                            ->where('start_time', '<=', $currentTime)
+                            ->where('end_time', '>', $currentTime);
+                    });
+            })
+
+            ->when($availability === 'unavailable', function ($q) use ($today, $currentTime) {
+                $q->where(function ($query) use ($today, $currentTime) {
+                    $query->where('status', 'dalam perbaikan')
+                        ->orWhereHas('reservations', function ($rq) use ($today, $currentTime) {
+                            $rq->whereDate('reservation_date', $today)
+                                ->whereIn('status', ['pending', 'approved'])
+                                ->where('start_time', '<=', $currentTime)
+                                ->where('end_time', '>', $currentTime);
+                        });
+                });
+            })
+
+            ->when($capacityMin !== null || $capacityMax !== null, function ($q) {
+                $q->orderBy('capacity', 'asc')->orderBy('name', 'asc');
+            })
+
+            ->with([
+                'type',
+                'location',
+                'photos',
+                'reservations' => function ($rq) use ($today, $currentTime) {
+                    $rq->whereDate('reservation_date', $today)
+                        ->whereIn('status', ['pending', 'approved'])
+                        ->where('start_time', '<=', $currentTime)
+                        ->where('end_time', '>', $currentTime);
+                },
+            ])
+
+            ->paginate(5)
+            ->withQueryString();
+
+        $types = FacilityType::orderBy('name')->get();
 
         return view('facilities.by-group', [
             'facilities' => $facilities,
             'groupName' => $building,
+            'types' => $types,
+            'typeId' => $typeId,
+            'status' => $status,
+            'capacityMin' => $capacityMin,
+            'capacityMax' => $capacityMax,
+            'availability' => $availability,
         ]);
     }
 }

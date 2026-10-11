@@ -58,19 +58,27 @@ class AccountManagementController extends Controller
 
     public function reject(User $user)
     {
+        $name = $user->name;
+
+        // Ubah email sebelum soft-delete supaya unique index MySQL tidak
+        // memblokir pendaftaran ulang. Format: deleted_<id>_<email> tidak
+        // akan bertabrakan dengan email asli siapa pun, dan data historis
+        // (siapa yang pernah mendaftar dengan email apa) tetap bisa dilacak.
         $user->update([
             'status' => 'rejected',
             'account_status' => null,
+            'email' => 'deleted_' . $user->id . '_' . $user->email,
         ]);
+        $user->delete();
 
-        return redirect()->route('admin.accounts.index')->with('status', "Akun {$user->name} ditolak.");
+        return redirect()->route('admin.accounts.index')->with('status', "Akun {$name} ditolak.");
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email'],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->whereNull('deleted_at')],
             'password' => ['required', 'min:8'],
             'role' => ['required', 'in:pengguna,petugas'],
             'user_type' => ['nullable', 'required_if:role,pengguna', 'in:mahasiswa,dosen,staf'],
@@ -99,9 +107,14 @@ class AccountManagementController extends Controller
 
     public function update(Request $request, User $user)
     {
+        // Cegah admin mengubah role dirinya sendiri (bisa mengunci diri dari sistem)
+        if ($user->id === auth()->id() && $request->input('role') !== $user->role) {
+            return back()->withErrors(['role' => 'Tidak bisa mengubah role akun sendiri.'])->withInput();
+        }
+
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)->whereNull('deleted_at')],
             'role' => ['required', 'in:admin,petugas,pengguna'],
             'user_type' => ['nullable', 'required_if:role,pengguna', 'in:mahasiswa,dosen,staf'],
         ]);
@@ -118,6 +131,10 @@ class AccountManagementController extends Controller
 
     public function toggleActive(User $user)
     {
+        if ($user->id === auth()->id()) {
+            return back()->withErrors(['user' => 'Tidak bisa mengubah status akun sendiri.']);
+        }
+
         if ($user->status !== 'verified') {
             return back()->withErrors(['user' => 'Akun belum verified, tidak bisa diaktif/nonaktifkan.']);
         }

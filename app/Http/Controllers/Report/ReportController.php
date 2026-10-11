@@ -170,9 +170,8 @@ class ReportController extends Controller
                 $newPhotoCount = count($request->file('photos', []));
 
                 if ($currentPhotoCountAfterDelete + $newPhotoCount > 3) {
-                    return back()->withErrors([
-                        'photos' =>
-                            'Maksimal 3 foto untuk satu laporan.',
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'photos' => 'Maksimal 3 foto untuk satu laporan.',
                     ]);
                 }
 
