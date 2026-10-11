@@ -41,6 +41,6 @@
         Belum punya akun? <a href="{{ route('register') }}">Daftar di sini</a>
     </p>
     <p class="auth-footer">
-        Hanya ingin melihat fasilitas? <a href="{{ route('facilities.index') }}">Lihat sebagai pengunjung</a>
+        Hanya ingin melihat fasilitas? <a href="{{ route('home') }}">Lihat sebagai pengunjung</a>
     </p>
 @endsection

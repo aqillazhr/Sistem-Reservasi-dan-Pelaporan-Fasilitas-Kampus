@@ -818,6 +818,14 @@ class FacilityController extends Controller
                 });
             })
 
+            // URUTAN HASIL BERDASARKAN KAPASITAS
+            ->when(
+                $capacityMin !== null || $capacityMax !== null,
+                function ($q) {
+                    $q->orderBy('capacity', 'asc')
+                        ->orderBy('name', 'asc');
+                }
+            )
             // RESERVATION YANG SEDANG BERLANGSUNG
             ->with([
                 'type',
