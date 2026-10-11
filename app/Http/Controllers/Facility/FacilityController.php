@@ -12,18 +12,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 /**
- * Modul: Fasilitas (Orang 2)
+ * Modul: Fasilitas
  * Modul database: Facilities
- *
- * TODO Orang 2:
- * - index(): search & filter (tipe/lokasi/kapasitas) untuk pengunjung & pengguna,
- *   fasilitas nonaktif tidak boleh muncul
- * - show(): halaman detail fasilitas + availability slot (data mentah dari
- *   Reservation milik Orang 3, sepakati formatnya, mis. {facility_id, date, start_time, end_time})
- * - store()/update(): CRUD fasilitas oleh admin, validasi kapasitas > 0 dsb (server & client)
- * - updateStatus(): dipanggil sendiri di sini ATAU dipanggil dari modul Report (Orang 4)
- *   lewat $facility->updateFacilityStatus() di Model Facility — jangan bikin logic
- *   status terpisah di controller Report.
+
  */
 class FacilityController extends Controller
 {

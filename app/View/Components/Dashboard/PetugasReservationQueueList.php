@@ -18,9 +18,7 @@ class PetugasReservationQueueList extends Component
 
     public function __construct()
     {
-        // Idempoten & murah kalau dipanggil lagi (component kartu di
-        // sebelahnya juga memanggil ini) — sengaja tidak mengandalkan urutan
-        // render antar component supaya keduanya tetap benar berdiri sendiri.
+ 
         app(\App\Services\ReservationService::class)->autoCancelExpired();
 
         $this->queue = Reservation::with(['user', 'facility.location'])

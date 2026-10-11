@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 /**
- * Modul: Autentikasi, Akun & Integrasi (Orang 1)
+ * Modul: Autentikasi, Akun & Integrasi 
  * Halaman: /admin/akun (Manajemen Pengguna)
  */
 class AccountManagementController extends Controller

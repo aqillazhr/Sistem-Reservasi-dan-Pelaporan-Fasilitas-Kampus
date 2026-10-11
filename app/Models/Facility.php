@@ -53,12 +53,6 @@ class Facility extends Model
         return $this->hasMany(StatusLog::class);
     }
 
-    // ------------------------------------------------------------
-    // Milik Orang 2 (rumah dari tabel facilities).
-    // Orang 4 WAJIB memanggil method ini untuk ubah status jadi
-    // 'dalam perbaikan' / balik ke 'aktif' — jangan bikin logic
-    // status terpisah, supaya tidak ada dua sumber kebenaran.
-    // ------------------------------------------------------------
     public function updateFacilityStatus(string $newStatus, ?int $changedByUserId = null, ?string $note = null): void
     {
         $oldStatus = $this->status;

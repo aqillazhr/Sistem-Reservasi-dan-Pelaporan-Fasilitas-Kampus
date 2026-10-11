@@ -7,11 +7,7 @@ use App\Services\ReservationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
-/**
- * Kartu kecil "Reservasi Menunggu: N" di baris kartu ringkasan dashboard
- * petugas (Desktop 5). Lihat juga PetugasReservationQueueList untuk daftar
- * antriannya (komponen terpisah karena beda baris tata letak).
- */
+
 class PetugasReservationQueueCard extends Component
 {
     public $pendingCount;

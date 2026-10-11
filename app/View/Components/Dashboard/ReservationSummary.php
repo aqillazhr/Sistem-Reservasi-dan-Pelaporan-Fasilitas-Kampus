@@ -6,11 +6,7 @@ use App\Models\Reservation;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
-/**
- * Ringkasan reservasi di dashboard pengguna (Orang 3).
- * Dibuat sebagai component supaya tidak menyentuh DashboardController
- * (menghindari conflict dengan Orang 1 & Orang 4).
- */
+
 class ReservationSummary extends Component
 {
     public $upcoming;

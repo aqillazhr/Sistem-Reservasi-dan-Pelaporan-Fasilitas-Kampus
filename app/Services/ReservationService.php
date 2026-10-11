@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Logika proses reservasi (Orang 3). Semua operasi TULIS ke DB dibungkus
+ * Logika proses reservasi. Semua operasi TULIS ke DB dibungkus
  * DB::transaction; semua query lewat Eloquent/Query Builder (parameter
  * binding PDO = prepared statement, tidak ada string SQL yang digabung).
  *
@@ -199,18 +199,7 @@ class ReservationService
         return $board;
     }
 
-    // ------------------------------------------------------------
-    // Auto-cancel reservasi pending yang sudah lewat WAKTU BOOKING-nya
-    // (bukan waktu pengajuannya) tapi belum sempat diproses petugas.
-    // Contoh: booking 12.00-12.30 tanggal 26, sekarang sudah jam 13.00
-    // tanggal 26 dan status masih 'pending' -> otomatis jadi 'cancelled',
-    // dengan catatan jelas dan pelaku "Sistem" (bukan log anonim).
-    //
-    // TIDAK pakai cron/scheduler (riskan kalau lupa dijalankan pas demo) —
-    // dipanggil "on the fly" di titik-titik yang relevan: sebelum hitung
-    // kuota pending (di atas), sebelum tampilkan riwayat/detail reservasi
-    // pengguna, dan sebelum tampilkan antrian petugas.
-    // ------------------------------------------------------------
+
     public function autoCancelExpired(?int $userId = null): int
     {
         return DB::transaction(function () use ($userId) {

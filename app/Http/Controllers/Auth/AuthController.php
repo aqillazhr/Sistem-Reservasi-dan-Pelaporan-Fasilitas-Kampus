@@ -9,16 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 
-/**
- * Modul: Autentikasi, Akun & Integrasi (Orang 1)
- * Modul database: Users
- *
- * TODO Orang 1:
- * - register(): registrasi mandiri (mahasiswa/dosen/staf) -> status default 'pending'
- * - login(): tolak login kalau status != 'verified' atau account_status == 'nonaktif'
- * - logout()
- * - redirect setelah login sesuai role (lihat redirectPathForRole())
- */
+
 class AuthController extends Controller
 {
     public function showLoginForm()
@@ -59,9 +50,6 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        // Selalu arahkan ke dashboard sesuai role, bukan ke halaman terakhir
-        // yang dikunjungi sebagai pengunjung (mis. /fasilitas) seperti yang
-        // dilakukan redirect()->intended().
         return redirect()->to($this->redirectPathForRole($user->role));
     }
 

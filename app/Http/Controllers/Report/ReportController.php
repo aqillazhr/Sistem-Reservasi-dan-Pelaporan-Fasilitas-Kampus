@@ -585,8 +585,7 @@ class ReportController extends Controller
     
     public function markUnderRepair(Request $request, Report $report)
     {
-        // Panggil method milik Model Facility (Orang 2), jangan bikin
-        // logic status fasilitas sendiri di sini.
+
         $report->facility->updateFacilityStatus('dalam perbaikan', $request->user()->id, "Terkait laporan #{$report->id}");
 
         return back()->with('status', 'Fasilitas ditandai dalam perbaikan.');
