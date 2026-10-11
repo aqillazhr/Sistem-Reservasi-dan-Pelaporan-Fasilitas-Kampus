@@ -20,8 +20,8 @@
         }
 
         /* =========================
-                       FILTER
-                    ========================= */
+                               FILTER
+                            ========================= */
         .filter-box {
             background: white;
             border-radius: 12px;
@@ -117,8 +117,8 @@
         }
 
         /* =========================
-                       HASIL
-                    ========================= */
+                               HASIL
+                            ========================= */
         .search-page hr {
             border: none;
             border-top: 1px solid #e0d5ee;
@@ -157,6 +157,7 @@
 
         .facility-info {
             flex: 1;
+            min-width: 0;
         }
 
         .facility-info h2 {
@@ -166,7 +167,8 @@
 
         .facility-details div {
             display: grid;
-            grid-template-columns: 130px 20px 1fr;
+            grid-template-columns: 130px minmax(0, 1fr);
+            column-gap: 12px;
             margin: 5px 0;
         }
 
@@ -188,8 +190,8 @@
         }
 
         /* =========================
-                       RESPONSIVE
-                    ========================= */
+                               RESPONSIVE
+                            ========================= */
         @media (max-width: 1000px) {
             .filter-grid {
                 grid-template-columns: repeat(2, 1fr);
@@ -493,7 +495,8 @@
                                 <span>Lokasi</span>
 
                                 <strong>
-                                    {{ $facility->location->ruangan ?? '-' }}
+                                    {{ collect([$facility->location->ruangan, $facility->location->gedung, $facility->location->fakultas])->filter()->implode(', ') ?:
+                                        '-' }}
                                 </strong>
                             </div>
 

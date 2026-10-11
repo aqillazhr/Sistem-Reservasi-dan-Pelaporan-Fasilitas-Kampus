@@ -267,12 +267,15 @@
     </div>
 
     <div class="group-body">
-        <button type="button" class="filter-toggle" onclick="toggleFilter()">
+        <button type="button"
+            class="filter-toggle {{ $typeId || $capacityMin !== null || $capacityMax !== null || $status || $availability ? 'active' : '' }}"
+            onclick="toggleFilter()">
             <span>Filter</span>
             <span id="filter-icon"></span>
         </button>
 
-        <div id="filter-panel" class="filter-panel">
+        <div id="filter-panel"
+            class="filter-panel {{ $typeId || $capacityMin !== null || $capacityMax !== null || $status || $availability ? 'active' : '' }}">
             <form method="GET" action="{{ url()->current() }}">
                 <div class="filter-grid">
                     {{-- Tipe --}}
