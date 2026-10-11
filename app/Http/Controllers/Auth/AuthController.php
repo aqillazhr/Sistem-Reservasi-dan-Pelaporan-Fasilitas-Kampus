@@ -59,7 +59,10 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return redirect()->intended($this->redirectPathForRole($user->role));
+        // Selalu arahkan ke dashboard sesuai role, bukan ke halaman terakhir
+        // yang dikunjungi sebagai pengunjung (mis. /fasilitas) seperti yang
+        // dilakukan redirect()->intended().
+        return redirect()->to($this->redirectPathForRole($user->role));
     }
 
     public function showRegistrationForm()
